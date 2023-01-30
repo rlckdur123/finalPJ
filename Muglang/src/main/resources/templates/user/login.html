@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<head>
+	<title>Welcome to MUGLANG</title>
+
+	<script th:src="@{/js/jquery-3.6.1.min.js}"></script>
+
+
+	<style>
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.01);
+		}
+
+		#container {
+			width: 100%;
+			height: 100%;
+			text-align: center;
+			position: relative;
+		}
+
+		#login_menu {
+			width: 700px;
+			height: 400px;
+			position: absolute;
+			top: 45%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: white;
+			border-radius: 50px;
+			border: 1px solid #dcdcdc;
+			box-shadow: 0 5px 18px -7px #464646;
+			z-index: 90;
+		}
+
+		.menu_title {
+			width: 100%;
+			height: 40%;
+		}
+
+		.mglg_logo {
+			width: 380px;
+			margin-top: 50px;
+		}
+
+		.login_group {
+			width: 100%;
+			height: 60%;
+		}
+
+		.login_img {
+			width: 250px;
+			margin-top: 8px;
+		}
+
+		#sub_menu {
+			width: 500px;
+			height: 15px;
+			position: absolute;
+			top: calc(45% + 200px);
+			left: 50%;
+			transform: translate(-50%, 0);
+			background-color: rgba(0, 0, 0, 0.1);
+			border-bottom-left-radius: 50px;
+			border-bottom-right-radius: 50px;
+			cursor: pointer;
+		}
+
+		#move_admin {
+			margin-top: 10px;
+			opacity: 0;
+			display: none;
+			text-decoration: none;
+		}
+	</style>
+
+	<script>
+		$(function () {
+			$("#sub_menu").click(function () {
+				if ($("#sub_menu").css("height") == "15px") {
+					$("#move_admin").css("display", "inline-block");
+					$("#move_admin").animate({
+						opacity: "1"
+					})
+					$("#sub_menu").animate({
+						height: "50px"
+					})
+				}
+				else {
+					$("#sub_menu").animate({
+						height: "15px"
+					})
+
+					$("#move_admin").css("display", "none");
+				}
+			})
+			$("#move_admin").click(function (e) {
+				e.stopPropagation();
+
+			})
+
+		});
+	</script>
+</head>
+
+<body>
+	<div id="container">
+		<div id="login_menu">
+			<!--로고-->
+			<div class="menu_title">
+				<img class="mglg_logo" th:src="@{/assets/img/mglg_logo_white.png}" alt="">
+			</div>
+			<!--로그인 아이콘-->
+			<div class="login_group">
+				<a href="/oauth2/authorization/kakao">
+					<img class="login_img" th:src="@{/images/login_with_kakao/kakao_login_large_narrow.png}">
+				</a><br>
+				<a href="/oauth2/authorization/google">
+					<img class="login_img"
+						th:src="@{/images/login_with_google/btn_google_signin_light_normal_web@2x.png}">
+				</a><br>
+				<a href="/oauth2/authorization/naver">
+					<img class="login_img" th:src="@{/images/login_with_naver/btnW_official.png}">
+				</a>
+			</div>
+		</div>
+		<div id="sub_menu">
+			<a th:href="@{/user/getAdminUserList}" id="move_admin">Admin Page</a>
+		</div>
+	</div>
+</body>
+
+</html>

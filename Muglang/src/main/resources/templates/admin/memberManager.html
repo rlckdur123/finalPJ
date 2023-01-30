@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout_admin}">
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			$(function () {
+
+			});
+		</script>
+	</th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<div class="pagetitle">
+			<h1>Admin Page</h1>
+			<nav>
+				<ol class="breadcrumb">
+				</ol>
+			</nav>
+		</div><!-- End Page Title -->
+
+		<section class="section dashboard">
+			<div class="row">
+
+				<!-- Left side columns -->
+				<div class="col-lg-8">
+					<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div style="margin: 15px; text-align: center;">
+									<!--회원 이미지-->
+									<div style="width: 15%; float: left;"><img class="img-fluid rounded-circle"
+											th:src="@{/assets/img/messages-1.jpg}" style="width: 50px;"></div>
+									<!--회원 이름, 아이디-->
+									<div style="width: 70%; float: left; margin-top: 5px;">
+										<div style="font-weight: bold;">보노보노</div>
+										<div style="color: #aaaaaa; font-size: x-small;">rlckdur123@naver.com</div>
+									</div>
+									<!--정지,추방 버튼-->
+									<div style="width: 15%; float: right;">
+										<button
+											style="height: 23px; font-size: small; background-color:transparent; border:none; color: blue;">정지</button>
+										<br>
+										<button
+											style="height: 23px; font-size: small; background-color:transparent; border:none; color: red;">추방</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div><!-- End Left side columns -->
+
+				<!-- Right side columns -->
+				<div class="col-lg-4 col-xxl-3">
+
+					<div class="card" style="text-align: center;">
+						<h5 class="card-title" style="font-weight: bold;">검색</h5>
+						<div class="card-body">
+							<!--검색 폼 (a태그로 해야하는지 폼으로 해야하는지 아리까리해서 일단작성 피드백 부탁)-->
+							<form class="form-inline" role="form">
+								<input type="text" placeholder="회원 검색" onfocus="this.placeholder=''"
+									onblur="this.placeholder='회원 검색'">
+								<input type="button" value="검색">
+							</form>
+						</div>
+					</div>
+				</div>
+
+
+			</div>
+		</section>
+	</main><!-- End #main -->
+</body>
+
+</html>

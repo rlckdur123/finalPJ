@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout}">
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			const loginUserId = /*[[${loginUserId}]]*/;
+
+			//댓글 관련 전역변수
+			let postId = 0;
+			let resName = "";
+			let commentId = 0;
+			let text_comment = "";
+			//화면단에 최초로 뿌릴 때 해당 정보를 임시로 저장하는 변수
+			let thisCommentTotalPages = 0;
+			let thisCommentTotalElements = 0;
+
+			//댓글 페이지수
+			let comment_page_num = 0;
+
+			//무한스크롤
+			let page_num = 0;
+			let post_text = "";
+			let totalPages = 1;
+			let scrollYn = false;
+
+			//현재시간
+			let now = new Date();
+
+			//댓글 수정 texteara 크기 자동 증가
+			function resize(obj) {
+				obj.style.height = "1px";
+				obj.style.height = (12 + obj.scrollHeight) + "px";
+			}
+
+			//새 게시글에서 추가된 파일들을 담아줄 배열. File객체로 하나씩 담음
+			let uploadFiles = [];
+			//이미 게시된 게시글의 파일들을 담을 게시글 구분 새로운 임시 배열
+			////
+			let uploadPostFileList = [];
+			//기존 첨부파일 배열
+			let originFiles = [];
+			//각 게시글들의 첨부파일들을 모은 것을 따로 담을 것임..
+			/////
+			let originFileList = [];
+			//변경된 첨부파일 배열
+			let changedFiles = [];
+
+			//파일 게시글 새로 등록한 곳은 따로 배열을 담아 처리할 것임. 분리함.
+			let inputUploadFiles = [];
+			let inputOriginFiles = [];
+
+			//게시글을 이벤트 처리하기위해 정리 해둔 배열들로
+			//포스팅 글들의 id를 관리하는데 사용함.
+			//해당 배열은 파일 처리 이벤트에서 많이 쓰게될 예정.
+			let postIdList = [];
+			let flagList = [];
+			let postFileIdList = [];
+			//게시글 등록후 해당 인덱스 번호에 대한 파일 이미지 조작할 게시글 위치를 등록할 변수
+			//새로 고침을 하거나 다른 페이지로 가면 이 정보는 0으로 초기화됨.
+			let insertIndex = 0;
+
+			$(function () {
+				var page_num3 = 0;
+				var page_num2 = 0;
+				let otherUser_totalPages = 0;
+				var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+				var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+					return new bootstrap.Tooltip(tooltipTriggerEl)
+				})
+				userId = $("#hiddenId").val();
+
+				///팔로워 리스트
+				$.ajax({
+					url: '/social/otherUserFollow',
+					type: 'get',
+					data: {userId: $("#hiddenId").val()},
+					success: function (obj) {
+						console.log("---------------------11111");
+						console.log(obj);
+						let formStr = `
+						<a href="/social/followOtherUser?userId=${userId}">
+						팔로우 하기
+						</a>
+						`
+						let formStr2 = `
+						<a href="/social/unFollowOtherUser?userId=${userId}">
+						언팔로우 하기
+						</a>
+						`
+
+						let formStr3 = `
+						<a>
+						
+						</a>
+						`
+
+						if (obj.item.followYn == 0) {
+							$("#followYn").html(formStr);
+						}
+						else if (obj.item.followYn == -1) {
+							$("#followYn").html(formStr3);
+						}
+						else {
+							$("#followYn").html(formStr2);
+						}
+						let htmlStr = '';
+						for (let i = 0; i < obj.pageItems.content.length; i++) {
+							otherUser_totalPages = obj.pageItems.totalPages;
+
+							htmlStr += `
+							<div class="" style="width: 100%; height: 70px;">
+                                <div class="col-2" style="margin-top: 10px; float: left; text-align: center;">
+									<img class="img-fluid rounded-circle" 
+									src="/upload/${obj.pageItems.content[i].followerprofile.userProfileNm}" style="width: 50px; height:50px">
+									</div>
+                                <div class="col-10" style="margin-top: 13px; float: left; text-align: center; padding-left: -50%;">
+                                    <div><a style="font-size" href="/social/otherUser?userId=${obj.pageItems.content[i].userId}">${obj.pageItems.content[i].userName}</a></div>
+                                    <div style="color: #aaaaaa; font-size: x-small;" >${obj.pageItems.content[i].email}</div>
+                                </div>
+                            </div>
+	
+                    	 `
+
+						}
+
+						$("#appendDiv1").html(htmlStr);
+					},
+					error: function (e) {
+						console.log(e);
+					}
+				});
+
+
+				//처음 포스트 불러오는 로직
+				$.ajax({
+					url: '/post/otherUserPost',
+					type: 'get',
+					data: {
+						page: page_num,
+						userId: loginUserId,
+						otherUserId: [[${user.userId}]]
+					},
+					success: function (obj) {
+						$.get_post(obj);
+						$(".filter").css("float", "right").css("margin", "25px")
+					},
+					error: function (e) {
+						console.log("실패실패");
+					}
+				});
+
+				//포스트 스크롤 로직
+
+				$(window).scroll(function () {
+					if (!scrollYn) {
+						if ($(window).scrollTop() == $(document).height() - $(window).height()) {
+							scrollYn = true;
+							console.log("들어오는 페이지 번호 : " + page_num);
+							if (page_num < totalPages) {
+								$.ajax({
+									url: '/post/otherUserPost',
+									type: 'get',
+									data: {
+										page: page_num,
+										userId: loginUserId,
+										otherUserId: [[${user.userId}]]
+									},
+									success: function (obj) {
+										console.log(obj)
+										$.get_post(obj);
+										$(".filter").css("float", "right").css("margin", "25px")
+										setTimeout(function () {
+											scrollYn = false;
+										}, 1000);
+									},
+									error: function (e) {
+										console.log("실패실패");
+									}
+								});
+							}
+						}
+					}
+				});
+
+
+				//팔로잉 리스트
+				$.ajax({
+					url: '/social/otherUserFollowing',
+					type: 'get',
+					data: {userId: $("#hiddenId").val()},
+					success: function (obj) {
+						console.log("------------------")
+						console.log(obj)
+						let htmlStr = '';
+						for (let i = 0; i < obj.pageItems.content.length; i++) {
+							htmlStr += `
+                     <div class="" style="width: 100%; height: 70px;">
+                                <div class="col-2" style="margin-top: 10px; float: left; text-align: center;">
+									<img class="img-fluid rounded-circle" 
+                                src="/upload/${obj.pageItems.content[i].followingprofile.userProfileNm}" style="width: 50px; height:50px"></div>
+                                <div class="col-10" style="margin-top: 13px; float: left; text-align: center; padding-left: -50%;">
+                                    <div><a style="font-size" href="/social/otherUser?userId=${obj.pageItems.content[i].userId}">${obj.pageItems.content[i].userName}</a></div>
+                                    <div style="color: #aaaaaa; font-size: x-small;" >${obj.pageItems.content[i].email}</div>
+                                </div>
+                            </div>
+                     `
+
+						}
+
+						$("#appendDiv2").html(htmlStr);
+					},
+					error: function (e) {
+						console.log(e);
+					}
+				});
+
+				//클릭시 사용 -- 팔로우 앞으로
+				$("#btn_next1").click(function () {
+					page_num3 = page_num3 + 1;
+					console.log("누르기전page_num3===" + page_num3)
+
+					if (page_num3 > otherUser_totalPages) {
+						page_num3 = otherUser_totalPages;
+						return;
+					}
+
+					$.ajax({
+						url: '/social/otherUserFollow',
+						type: 'get',
+						data: {
+							userId: $("#hiddenId").val(),
+							page: page_num3 - 1
+						},
+						success: function (obj) {
+							console.log(obj);
+							let htmlStr = '';
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+                    			 <div class="" style="width: 100%; height: 70px;">
+                                <div class="col-2" style="margin-top: 10px; float: left; text-align: center;">
+									<img class="img-fluid rounded-circle" 
+									src="/upload/${obj.pageItems.content[i].followerprofile.userProfileNm}" style="width: 50px; height:50px">
+								</div>
+                                <div class="col-10" style="margin-top: 13px; float: left; text-align: center; padding-left: -50%;">
+                                    <div><a style="font-size" href="/social/otherUser?userId=${obj.pageItems.content[i].userId}">${obj.pageItems.content[i].userName}</a></div>
+                                    <div style="color: #aaaaaa; font-size: x-small;" >${obj.pageItems.content[i].email}</div>
+                                </div>
+                            </div>
+                     `
+							}
+
+							$("#appendDiv1").html(htmlStr);
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+				})
+				//클릭시 사용 -- 팔로우 뒤로
+				$("#btn_prev1").click(function () {
+					if (page_num3 < 2) {
+						return;
+					}
+					page_num3 = page_num3 - 1;
+					$.ajax({
+						url: '/social/otherUserFollow',
+						type: 'get',
+						data: {
+							userId: $("#hiddenId").val(),
+							page_num3: page_num3 - 1
+						},
+						success: function (obj) {
+							let htmlStr = '';
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+                     <div class="" style="width: 100%; height: 70px;">
+                                <div class="col-2" style="margin-top: 10px; float: left; text-align: center;">
+									<img class="img-fluid rounded-circle" src="/upload/${obj.pageItems.content[i].followerprofile.userProfileNm}" style="width: 50px; height:50px"></div>
+                                <div class="col-10" style="margin-top: 13px; float: left; text-align: center; padding-left: -50%;">
+                                    <div><a style="font-size" href="/social/otherUser?userId=${obj.pageItems.content[i].userId}">${obj.pageItems.content[i].userName}</a></div>
+                                    <div style="color: #aaaaaa; font-size: x-small;" >${obj.pageItems.content[i].email}</div>
+                                </div>
+                            </div>
+                     `
+							}
+
+							$("#appendDiv1").html(htmlStr);
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+				})
+
+				//클릭시 사용 -- 팔로잉 앞으로
+				$("#btn_next2").click(function () {
+
+					$.ajax({
+						url: '/social/otherUserFollowing',
+						type: 'get',
+						data: {
+							userId: $("#hiddenId").val(),
+							page_num: page_num2
+						},
+						success: function (obj) {
+							if (page_num2 == obj.pageItems.totalPages) {
+								return
+							}
+							let htmlStr = '';
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+                     <div class="" style="width: 100%; height: 70px;">
+                                <div class="col-2" style="margin-top: 10px; float: left; text-align: center;">
+									<img class="img-fluid rounded-circle" src="/upload/${obj.pageItems.content[i].followingprofile.userProfileNm}" style="width: 50px; height:50px"></div>
+                                <div class="col-10" style="margin-top: 13px; float: left; text-align: center; padding-left: -50%;">
+                                    <div><a style="font-size" href="/social/otherUser?userId=${obj.pageItems.content[i].userId}">${obj.pageItems.content[i].userName}</a></div>
+                                    <div style="color: #aaaaaa; font-size: x-small;" >${obj.pageItems.content[i].email}</div>
+                                </div>
+                            </div>
+                     `
+							}
+
+							$("#appendDiv2").html(htmlStr);
+							page_num2 = page_num2 + 1;
+							console.log("누른후page_num2===" + page_num2);
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+				})
+				//클릭시 사용 -- 팔로잉 뒤로
+				$("#btn_prev2").click(function () {
+					console.log("누르기전page_num2===" + page_num2);
+					if (page_num2 == 1) {
+						return;
+					}
+					page_num2 = page_num2 - 2;
+					console.log("누른후page_num2===" + page_num2);
+					$.ajax({
+						url: '/social/otherUserFollowing',
+						type: 'get',
+						data: {
+							userId: $("#hiddenId").val(),
+							page_num: page_num2
+						},
+						success: function (obj) {
+							let htmlStr = '';
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+                     <div class="" style="width: 100%; height: 70px;">
+                                <div class="col-2" style="margin-top: 10px; float: left; text-align: center;">
+									<img class="img-fluid rounded-circle" src="/upload/${obj.pageItems.content[i].followingprofile.userProfileNm}" style="width: 50px; height:50px"></div>
+                                <div class="col-10" style="margin-top: 13px; float: left; text-align: center; padding-left: -50%;">
+                                    <div><a style="font-size" href="/social/otherUser?userId=${obj.pageItems.content[i].userId}">${obj.pageItems.content[i].userName}</a></div>
+                                    <div style="color: #aaaaaa; font-size: x-small;" >${obj.pageItems.content[i].email}</div>
+                                </div>
+                            </div>
+                     `
+							}
+							$("#appendDiv2").html(htmlStr);
+							page_num2 = page_num2 + 1;
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+				});
+
+				
+
+			});
+		</script>
+	</th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<section class="section">
+			<div class="row">
+				<div class="col-lg-12">
+					<div class="card-title profile-card pt-4 d-flex flex-column align-items-center"
+						style="position: relative;">
+						<div style="position: absolute; top: 20px; right: 20px;">
+							<form th:action="@{/user/reportUserFollow(userId=${user.userId})}" method="post">
+								<input type="submit" class="dropdown-item" value="유저 신고하기">
+							</form>
+						</div>
+						<img th:src="@{'/upload/'+${userProfile.userProfileNm}}" style="width:150px;height: 150px;"
+							alt="Profile" class="rounded-circle">
+						<h2 style="margin-top: 15px;" th:text="${user.userNick}"></h2>
+						<h6 style="color: #aaaaaa;" th:text="${user.email}"></h6>
+						<input type="hidden" id="hiddenId" th:value="${user.userId}">
+						<h6 th:text="${user.bio}"></h6>
+						<div id="followYn">
+						</div>
+
+					</div>
+					<div class="card-body">
+						<!-- 선택 버튼 -->
+						<ul class="nav nav-tabs nav-tabs-bordered">
+							<li class="nav-item">
+								<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profile-post">작성한
+									글</button>
+							</li>
+
+							<li class="nav-item">
+								<button class="nav-link" data-bs-toggle="tab"
+									data-bs-target="#profile-fallower">팔로워</button>
+							</li>
+
+							<li class="nav-item">
+								<button class="nav-link" data-bs-toggle="tab"
+									data-bs-target="#profile-fallowing">팔로잉</button>
+							</li>
+						</ul>
+						<!--버튼에 관한 각각의 창-->
+						<div class="tab-content pt-2">
+							<!--작성한 글-->
+							<div class="tab-pane fade show active" id="profile-post">
+								<div class="row">
+									<div id="post_div" class="col-12"></div>
+								</div>
+							</div>
+							<!--팔로워-->
+							<div class="tab-pane fade" id="profile-fallower">
+								<div class="row">
+									<div class="card" id="appendDiv1">
+										<!--팔로우 리스트-->
+									</div>
+								</div>
+								<button id="btn_prev1" class="form-control" style="width: 80px; margin-top:-20px; float:left;">이전</button>
+								<button id="btn_next1" class="form-control" style="width: 80px; margin-top:-20px; float:right;">다음</button>
+							</div>
+							<!--팔로잉-->
+							<div class="tab-pane fade" id="profile-fallowing">
+								<div class="row">
+									<div class="card" id="appendDiv2">
+
+										<!--팔로잉 리스트-->
+
+									</div>
+								</div>
+								<button id="btn_prev2" class="form-control" style="width: 80px; margin-top:-10px; float:left;">이전</button>
+								<button id="btn_next2" class="form-control" style="width: 80px; margin-top:-10px; float:right;">다음</button>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</section>
+		<!-- 댓글 모델 -->
+		<div class="modal fade" id="msgModal" role="dialog">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content" id="comment-content">
+					<div class="modal-header">
+						<!-- 댓글 작성 -->
+						<textarea id="" style="width:70%; height: 30px; overflow:hidden; resize: none;"
+							spellcheck="false" onkeydown="resize(this)" onkeyup="resize(this)">asdf</textarea>
+						<button class="btn">작성</button>
+					</div>
+					<!-- 댓글 들어가는곳 -->
+					<div class="modal-body overflow-auto">
+						<div style="max-height: 30em;">
+							<div class="comment_info" style="margin-bottom: 20px; position:relative">
+								<div class="filter" style="margin-top: 15px; position: absolute; top:-12px; right:10p;">
+									<a class="icon" href="#" data-bs-toggle="dropdown"><i
+											class="bi bi-three-dots"></i></a>
+									<ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+										<li><a class="dropdown-item" href="#">
+												</i>&emsp;신고하기</a></li>
+									</ul>
+								</div>
+								<img class="img-fluid rounded-circle" src="../assets/img/messages-2.jpg"
+									style="width: 40px;">
+								<span style="margin-left: 10px;"><a href="#"
+										style="color: black; cursor:pointer;">머글랭</a></span>
+								<div style="word-break: keep-all;">Lorem ipsum dolor, sit amet consectetur adipisicing
+									elit. Velit, ullam recusandae
+									odit suscipit cumque nihil nulla ipsam obcaecati doloremque temporibus vel magni et
+									cupiditate repudiandae esse ea repellat, laudantium inventore!
+								</div>
+							</div>
+							<!--<div id="comment_scroll_div" class="overflow-auto"></div>-->
+							<!--스크롤이 맨 아래에 닿으면 이 위치에 작성됨-->
+						</div>
+					</div>
+					<div id="comment_scroll_div" class="col-12"></div>
+				</div>
+			</div>
+
+		</div>
+		<!-- 식사 모달 모델 -->
+		<div class="modal fade" id="eatModal" role="dialog">
+
+		</div>
+
+
+		<!-- 식당 정보 표시 모델 -->
+		<div class="modal fade" id="map_modal" role="dialog">
+			<div class="modal-dialog modal-dialog-centered modal-lg">
+				<div class="modal-content" id="modal-content">
+					<div class="modal-body">
+						<div
+							style="width:200px; background-color:rgba(255, 255, 255, 0.8); text-align:center; position:absolute; z-index:990;">
+							<div id="map_resName" style="width:100%; font-size:large; font-weight:bold; margin:10px 0">
+							</div>
+							<div id="map_resCategory" style="width:100%; font-size:xx-small;"></div>
+							<div id="map_resAddress"
+								style="width:100%; font-size:smaller; border-top:solid #c8c8c8 1px; margin-top:5px;">
+							</div>
+						</div>
+						<div id="map" style="width:100%; height:450px;"></div>
+
+
+						<script type="text/javascript"
+							src="//dapi.kakao.com/v2/maps/sdk.js?appkey=4b4b486ea62719eefbee2b4ac9dd7c89&libraries=services"></script>
+						<script>
+							$(function () {
+								//지도 모달 부르는 로직
+								$.map_button = function () {
+									$(".map_icon").click(function (e) {
+										let postId = e.target.id;
+										$.ajax({
+											url: '/post/PostMap',
+											type: 'get',
+											data: {
+												postId: postId
+											},
+											success: function (obj) {
+												//모달을 실행하고
+												$('#map_modal').modal("show");
+												setTimeout(function () {
+													map.relayout();
+												}, 500);
+
+												//카카오 맵 호출
+												var mapContainer = document.getElementById('map'), // 지도를 표시할 div 
+													mapOption = {
+														center: new kakao.maps.LatLng(33.450701, 126.570667), // 지도의 중심좌표
+														level: 2 // 지도의 확대 레벨
+													};
+
+												// 지도를 생성합니다    
+												var map = new kakao.maps.Map(mapContainer, mapOption);
+
+
+												// 주소-좌표 변환 객체를 생성합니다
+												var geocoder = new kakao.maps.services.Geocoder();
+
+												// 주소로 좌표를 검색합니다
+												geocoder.addressSearch(obj.resAddress, function (result, status) {
+
+													// 정상적으로 검색이 완료됐으면 
+													if (status === kakao.maps.services.Status.OK) {
+
+														var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+
+														// 결과값으로 받은 위치를 마커로 표시합니다
+														var marker = new kakao.maps.Marker({
+															map: map,
+															position: coords
+														});
+
+														//검색해봐도 해결 방법이 없어서 약간의 가라/노가다 섞음
+														//화면 크기에 따라 중앙 다르게 설정
+														if ($(window).width() >= 992) {
+															// 지도의 중심을 결과값으로 받은 위치로 이동시킵니다
+															map.setCenter(new kakao.maps.LatLng((Number)(result[0].y) + 0.0011, result[0].x - 0.0021));
+														} else {
+															map.setCenter(new kakao.maps.LatLng((Number)(result[0].y) + 0.0011, result[0].x - 0.0013));
+														}
+
+													}
+												});
+												$("#map_resName").html(obj.resName);
+												$("#map_resCategory").html(obj.resCategory);
+												$("#map_resAddress").html(obj.resAddress);
+											},
+											error: function (e) {
+												console.log("에러에러");
+											}
+										});
+									})
+								}
+
+								$.map_button();
+
+							});
+
+						</script>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--지도모델 끝-->
+
+	</main><!-- End #main -->
+</body>
+
+</html>

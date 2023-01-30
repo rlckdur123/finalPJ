@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout}">
+
+<!-- head 영역 시작 -->
+<!-- 개별적으로 사용할 css, js 링크 걸기 위해 남겨둠 -->
+
+<head>
+
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			const loginUserId = /*[[${loginUser.userId}]]*/;
+
+			//댓글 관련 전역변수
+			let postId = 0;
+			let resName = "";
+			let commentId = 0;
+			let text_comment = "";
+			//화면단에 최초로 뿌릴 때 해당 정보를 임시로 저장하는 변수
+			let thisCommentTotalPages = 0;
+			let thisCommentTotalElements = 0;
+			
+			//댓글 페이지수
+			let comment_page_num = 0;
+			//스크롤을 하는 조건의 높이
+			let comHeight = 0;
+			//무한스크롤
+			let page_num = 0;
+			let post_text = "";
+			let totalPages = 1;
+			let scrollYn = false;
+			let commentScrollYn = false;
+			//현재시간
+			let now = new Date();
+
+			//댓글 수정 texteara 크기 자동 증가
+			function resize(obj) {
+				obj.style.height = "1px";
+				obj.style.height = (12 + obj.scrollHeight) + "px";
+			}
+
+			//새 게시글에서 추가된 파일들을 담아줄 배열. File객체로 하나씩 담음
+			let uploadFiles = [];
+			//이미 게시된 게시글의 파일들을 담을 게시글 구분 새로운 임시 배열
+			////
+			let uploadPostFileList = [];
+			//기존 첨부파일 배열
+			let originFiles = [];
+			//각 게시글들의 첨부파일들을 모은 것을 따로 담을 것임..
+			/////
+			let originFileList = [];
+			//변경된 첨부파일 배열
+			let changedFiles = [];
+
+			//파일 게시글 새로 등록한 곳은 따로 배열을 담아 처리할 것임. 분리함.
+			let inputUploadFiles = [];
+			let inputOriginFiles = [];
+
+			//게시글을 이벤트 처리하기위해 정리 해둔 배열들로
+			//포스팅 글들의 id를 관리하는데 사용함.
+			//해당 배열은 파일 처리 이벤트에서 많이 쓰게될 예정.
+			let postIdList = [];
+			let flagList = [];
+			let postFileIdList = [];
+			//게시글 등록후 해당 인덱스 번호에 대한 파일 이미지 조작할 게시글 위치를 등록할 변수
+			//새로 고침을 하거나 다른 페이지로 가면 이 정보는 0으로 초기화됨.
+			let insertIndex = 0;
+			
+			/*
+			//게시글을 이벤트 처리하기위해 정리 해둔 배열들로
+			//포스팅 글들의 id를 관리하는데 사용함.
+			//해당 배열은 파일 처리 이벤트에서 많이 쓰게될 예정.
+			let postIdList = [];
+			let flagList = [];
+			let postFileIdList = [];
+			*/
+			$(function () {
+				let editor = callInsertPost();
+				$("#editor_space").append($(editor));
+				$.newPostbutton();
+				
+				const userId = /*[[${#authentication.principal.username}]]*/;
+
+
+				let list = $('.post').get();
+
+				//전역변수에서 사용할 배열을 사용할 수 있게 초기화 하는 반복문.
+				//2차원배열로 사용할 배열은 미리 초기화하여 이후에 사용할 것임.
+				//!!!!!!!!!!!!!!!!!!!!!!postFileId가 postId별로 존재하는 게 아니기 때문에 2차원배열 사용할 이유없음
+				for (let i = 0; i < list.length; i++) {
+					flagList.push(false);
+				}
+				//초기 화면에 도착시 파일의 목록 아이디를 저장해둠.
+				$("input[name='postFileId']").each(function () {
+					postFileIdList.push(Number($(this).val()));
+				});
+
+				console.log("게시글 : " + postIdList);
+				console.log("파일들의 리스트 목록 배열 : " + postFileIdList);
+				console.log(list.length);
+
+				//html단의 처리. html의 val값으로 태그들을 뺀 값을 넣을 수 있다.
+				console.log($("#postContentIn").val());
+				$("#postContent25").html($("#postContentIn").val());
+				console.log($(".quill-editor-default").text());
+				$("#postContent").val($(".ql-editor").html());
+
+
+				//퀼 텍스트 에어리어 소환
+				new Quill('.quill-editor-default', {
+					modules: {
+						toolbar: [
+							[{
+								font: []
+							}, {
+								size: []
+							}],
+							["bold", "italic", "underline", "strike"],
+							[{
+								color: []
+							},
+							{
+								background: []
+							}
+							],
+							[{
+								script: "super"
+							},
+							{
+								script: "sub"
+							}
+							],
+							[{
+								list: "ordered"
+							},
+							{
+								list: "bullet"
+							},
+							{
+								indent: "-1"
+							},
+							{
+								indent: "+1"
+							}
+							],
+							["direction", {
+								align: []
+							}],
+							["clean"]
+						]
+					},
+					theme: 'snow'
+
+				});
+
+				//해시태그 이벤트
+				for (let i = 1; i < 5; i++) {
+					$("#hashTag" + i).blur(function () {
+						if ($("#hashTag" + i).val() != "") {
+							$("#hashTag_label" + (i + 1)).css("display", "inline-block");
+						}
+					});
+				}
+
+				//게시글 등록에서 사용되는 파일리스트 보관. 새로 로드시 파일리스트를 배열로 저장함.
+				for (let i = 0; i < postFileIdList.length; i++) {
+					const originFileObj = {
+						postId: Number($("#postId" + postFileIdList[i]).val()),
+						postFileId: postFileIdList[i],
+						postFileNm: $("#postFileNm" + postFileIdList[i]).val(),
+						//업로드 파일 경로가 각각 다를때는 boardFilePath 속성도 추가
+						//파일 상태값(수정되거나 삭제된 파일은 변경) - 파일의 상태 값을 표시함.
+						postFileStatus: "N"
+					};
+					originFiles.push(originFileObj);
+					console.log(originFiles);
+				}
+
+				//게시글 조회에서 사용함. 해당 게시글의 업로드된 파일을 확인.
+				//업로드된 파일의 개수만큼 반복해서 originFileObj 맵에 파일 정보를 배열에 저장함.
+				//수업 때 했던 게시글은 1개이고, 지금 이건 여러개를 뿌려야하기 때문에 게시된 데이터를 다 가지고 와야함.
+
+				//작성 버튼의 파일 처리도 나중에 진행 할 예정임.
+				//작성 버튼 - 따로 다른 페이지로 이동하지 않고 현재 페이지에서 바로 입력 처리를 시작함.
+				
+				//파일 처리 버튼 관련 이벤트는 로드시 한번만 호출하면됨.
+				$.btnAtt();
+				
+				$("#insert_board").on("click", function (e) {
+					e.preventDefault();
+					let insert_post = "";
+					
+					//태그들을 문자로 포맷 변환
+					let content_format = $(".ql-editor").html();
+					content_format = content_format.replaceAll("<", "&lt;");
+					content_format = content_format.replaceAll(">", "&gt;");
+					
+					$("#postContent").val(content_format);
+
+					//$("#postContent").val($(".ql-editor").html());
+					//마지막으로 btnAtt에 uploadFiles에 있는 파일들을 담아준다.
+					dt3 = new DataTransfer();
+
+					for (f in inputUploadFiles) {
+						const file = inputUploadFiles[f];
+						dt3.items.add(file);
+					}
+					console.log("파일 입력 내용을 입력 중입니다." + $("input[name='postContent']").val());
+					
+					
+					$("#btnAtt")[0].files = dt3.files;
+					
+					console.log(dt3.files);
+					//$("#insert_form").submit();
+					//변경된 파일정보와 삭제된 파일정보를 담고있는 배열 전송
+					//배열 형태로 전송 시 백단(Java)에서 처리불가
+					//JSON String 형태로 변환하여 전송한다.
+					//$("#originFiles").val(JSON.stringify(originFiles));
+
+					//ajax에서 multipart/form-data형식을 전송하기 위해서는
+					//new FormData()를 사용하여 직접 폼데이터 객체를 만들어준다.
+					//form.serialize()는 multipart/form-data 전송불가
+					let formData = new FormData($("#insert_form")[0]);
+
+					//ajax는 추후에 구현할 예정.
+					//insertPostAndFile();
+					$.ajax({
+						enctype: 'multipart/form-data',
+						url: '/post/insertPost',
+						type: 'post',
+						processData: false,
+						contentType: false,
+						data: formData,
+						success: function (obj) {
+
+							alert("글 등록에 성공하였습니다.");
+							console.log(obj);
+							console.log("로그인한 계정 : " + loginUserId);
+							console.log("먼저 등록한 게시글의 번호 : " + insertIndex);
+							insert_post = get_post_current(obj);
+							
+							//화면에 표시된 게시글 수 갱신
+							let postNumber = Number($("#cntPost").text()) + 1;
+							const inPostId = obj.insertPost.postId;
+							const inFileLength = obj.postFileList.length;
+							$("#cntPost").text(postNumber);
+							//$("#posts").html(insert_post);
+							//html단 뿌리기
+							console.log(insert_post);
+							
+							$("#post_div").prepend($(insert_post));
+							//뿌려서 갱신된 정보를 최신순인 앞에서부터 입력함.
+							flagList.unshift(false);
+
+							//postIdList.unshift(Number($($('.updateBtn')[0]).val()));	
+							//postFileIdList.unshift(Number($($('.updateBtn')[0]).val()));
+							postIdList.unshift(inPostId);
+							let inputFile = [];
+							//$.update_post();
+							for (let i = 0; i < inFileLength; i++) {
+								inputFile.push(obj.postFileList[i]);
+							}
+							console.log("임시 배열 출력 : ");
+							console.log(inputFile);
+							for (let i = 0; i < inFileLength; i++) {
+								postFileIdList.unshift(inputFile[inFileLength - i - 1].postFileId);
+								const originFileObj = {
+									postId: inPostId,
+									postFileId: inputFile[inFileLength - i - 1].postFileId,
+									postFileNm: inputFile[inFileLength - i - 1].postFileNm,
+									//업로드 파일 경로가 각각 다를때는 boardFilePath 속성도 추가
+									//파일 상태값(수정되거나 삭제된 파일은 변경) - 파일의 상태 값을 표시함.
+									postFileStatus: "N"
+								};
+								originFiles.unshift(originFileObj);
+							}
+							console.log("파일 정보 입력이 되었는지 확인. : ")
+							console.log(originFiles);
+							//이벤트 다시 적용
+							$.update_post(obj.insertPost.postId);
+							$.deleteButtonSet(obj.insertPost.postId);
+							$.like_button(obj.loginUser.userId);
+							$.comment_button();
+							$.map_button();
+							insertIndex += 1;
+							location.reload();
+						}, error: function (e) {
+							console.log(e);
+						}
+					});
+
+				});
+				
+
+				//게시글 입력 하는 입력창 조작
+				$("#inputRestNm").keyup(function (e) {
+					$("#restNm").val($(this).val());
+				});
+				
+				//처음 포스트 불러오는 로직
+				$.ajax({
+					url: '/post/mainPost',
+					type: 'post',
+					data: {page_num: page_num},
+					success: function (obj) {
+						$.get_post(obj);
+					},
+					error: function (e) {
+						console.log("실패실패");
+					}
+				});
+				
+				//스크롤 로직
+				
+				$(window).scroll(function () {
+					if(!scrollYn) {
+						if ($(window).scrollTop() == $(document).height() - $(window).height()) {
+							scrollYn = true;
+							console.log("들어오는 페이지 번호 : " + page_num);
+							if (page_num < totalPages) {
+								$.ajax({
+									url: '/post/mainPost',
+									type: 'post',
+									data: {page_num: page_num},
+									success: function (obj) {
+									  console.log(obj)
+										$.get_post(obj);
+										setTimeout(function(){
+											scrollYn = false;
+										}, 1000);
+									},
+									error: function (e) {
+										console.log("실패실패");
+									}
+								});
+							}
+						}
+					}
+				});
+				/*
+				$(modal-body).scroll(function() {
+					console.log($(modal-body).scrollTop());
+					console.log($(document).height());
+					console.log($(modal-body).height());
+					if(!commentScrollYn) {
+						if ($(modal-body).scrollTop() == $(document).height() - $(modal-body).height()) {
+							commentScrollYn = true;
+							console.log("들어오는 페이지 번호 : " + page_num);
+							if (page_num < totalPages) {
+								$.ajax({
+									url: '/post/mainPost',
+									type: 'post',
+									data: {page_num: page_num},
+									success: function (obj) {
+									  console.log(obj)
+										$.get_post(obj);
+										setTimeout(function(){
+											commentScrollYn = false;
+										}, 1000);
+									},
+									error: function (e) {
+										console.log("실패실패");
+									}
+								});
+							}
+						}
+					}
+				});*/
+			});//j쿼리 종료
+
+			//지도 윈도우창 띄우기
+			let pop;
+			function new_window() {
+				pop = window.open(
+					"/post/map",
+					"kakaoMap",
+					"width=800, height=500, top=50, left=50, toolbar=no, location=no, status=no, memubar=no, scrollbars=no, resizable=no"
+				);
+			}
+			//지도 윈도우창 종료
+			function closeCallback() {
+
+				pop.close();
+			}
+
+
+		</script>
+	</th:block>
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+
+	<main layout:fragment="main" id="main" class="main">
+		<div id="selectedPost">
+
+		</div>
+		<div class="pagetitle">
+			<h1>HOME</h1>
+		</div><!-- End Page Title -->
+
+		<section class="section dashboard">
+			<div class="row">
+				<!--왼쪽 라인을 8로 오른쪽 라인을 4 비율로 나눔(페이지 100% = 12)-->
+				<!-- Left side columns -->
+				<div class="col-lg-8">
+					<div class="row" id="posts">
+						<!-- 새글 작성 공간-->
+						<div id="editor_space" class="col-12"></div>
+						<!--포스트 작성 장소-->
+						<div id="post_div" class="col-12"></div>
+					</div>
+					<!-- End Left side columns -->
+				</div>
+				<!-- Right side columns -->
+				<div class="col-lg-4 col-xxl-3">
+					<!-- Recent Activity -->
+					<div class="card">
+						<div class="card-body">
+							<h5 class="card-title"
+								style="text-align: center; font-size: larger; font-weight: bold; margin-top:10px;">지금 뜨는
+								먹거리 <span>| Today</span></h5>
+							<div class="activity">
+								<div id="today_eat" th:each="hotKeyword : ${hotKeywords}">
+									<ul style="list-style:none; position:relative; right: 15px;">
+										<li><a th:href="@{/search/search(searchKeyword=${hotKeyword.hotKeyword})}" th:text="|${hotKeywordStat.count}.  #${hotKeyword.hotKeyword}|"></a></li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div><!-- End Recent Activity -->
+				</div><!-- End Right side columns -->
+		</section>
+		<!-- 댓글 모델 -->
+		<div class="modal fade" id="msgModal" role="dialog">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content" id="comment-content">
+					<div class="modal-header">
+						<!-- 댓글 작성 -->
+						<textarea id="" style="width:70%; height: 30px; overflow:hidden; resize: none;"
+							spellcheck="false" onkeydown="resize(this)" onkeyup="resize(this)">asdf</textarea>
+						<button class="btn">작성</button>
+					</div>
+					<!-- 댓글 들어가는곳 -->
+					<div class="modal-body overflow-auto">
+						<div style="max-height: 30em;">
+							<div class="comment_info" style="margin-bottom: 20px; position:relative">
+								<div class="filter" style="margin-top: 15px; position: absolute; top:-12px; right:10p;">
+									<a class="icon" href="#" data-bs-toggle="dropdown"><i
+											class="bi bi-three-dots"></i></a>
+									<ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+										<li><a class="dropdown-item" href="#">
+												</i>&emsp;신고하기</a></li>
+									</ul>
+								</div>
+								<img class="img-fluid rounded-circle" src="../assets/img/messages-2.jpg"
+									style="width: 40px;">
+								<span style="margin-left: 10px;"><a href="#"
+										style="color: black; cursor:pointer;">머글랭</a></span>
+								<div style="word-break: keep-all;">Lorem ipsum dolor, sit amet consectetur adipisicing
+									elit. Velit, ullam recusandae
+									odit suscipit cumque nihil nulla ipsam obcaecati doloremque temporibus vel magni et
+									cupiditate repudiandae esse ea repellat, laudantium inventore!
+								</div>
+							</div>
+							<!--<div id="comment_scroll_div" class="overflow-auto"></div>-->
+							<!--스크롤이 맨 아래에 닿으면 이 위치에 작성됨-->
+						</div>
+					</div>
+					<div id="comment_scroll_div" class="col-12"></div>
+				</div>
+			</div>
+
+		</div>
+		<!-- 식사 모달 모델 -->
+		<div class="modal fade" id="eatModal" role="dialog">
+
+		</div>
+
+
+		<!-- 식당 정보 표시 모델 -->
+		<div class="modal fade" id="map_modal" role="dialog">
+			<div class="modal-dialog modal-dialog-centered modal-lg">
+				<div class="modal-content" id="modal-content">
+					<div class="modal-body">
+						<div
+							style="width:200px; background-color:rgba(255, 255, 255, 0.8); text-align:center; position:absolute; z-index:990;">
+							<div id="map_resName" style="width:100%; font-size:large; font-weight:bold; margin:10px 0">
+							</div>
+							<div id="map_resCategory" style="width:100%; font-size:xx-small;"></div>
+							<div id="map_resAddress"
+								style="width:100%; font-size:smaller; border-top:solid #c8c8c8 1px; margin-top:5px;">
+							</div>
+						</div>
+						<div id="map" style="width:100%; height:450px;"></div>
+
+
+						<script type="text/javascript"
+							src="//dapi.kakao.com/v2/maps/sdk.js?appkey=4b4b486ea62719eefbee2b4ac9dd7c89&libraries=services"></script>
+						<script>
+							$(function () {
+								//지도 모달 부르는 로직
+								$.map_button = function () {
+									$(".map_icon").click(function (e) {
+										let postId = e.target.id;
+										$.ajax({
+											url: '/post/PostMap',
+											type: 'get',
+											data: {
+												postId: postId
+											},
+											success: function (obj) {
+												//모달을 실행하고
+												$('#map_modal').modal("show");
+												setTimeout(function () {
+													map.relayout();
+												}, 500);
+
+												//카카오 맵 호출
+												var mapContainer = document.getElementById('map'), // 지도를 표시할 div 
+													mapOption = {
+														center: new kakao.maps.LatLng(33.450701, 126.570667), // 지도의 중심좌표
+														level: 2 // 지도의 확대 레벨
+													};
+
+												// 지도를 생성합니다    
+												var map = new kakao.maps.Map(mapContainer, mapOption);
+
+
+												// 주소-좌표 변환 객체를 생성합니다
+												var geocoder = new kakao.maps.services.Geocoder();
+
+												// 주소로 좌표를 검색합니다
+												geocoder.addressSearch(obj.resAddress, function (result, status) {
+
+													// 정상적으로 검색이 완료됐으면 
+													if (status === kakao.maps.services.Status.OK) {
+
+														var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+
+														// 결과값으로 받은 위치를 마커로 표시합니다
+														var marker = new kakao.maps.Marker({
+															map: map,
+															position: coords
+														});
+
+														//검색해봐도 해결 방법이 없어서 약간의 가라/노가다 섞음
+														//화면 크기에 따라 중앙 다르게 설정
+														if ($(window).width() >= 992) {
+															// 지도의 중심을 결과값으로 받은 위치로 이동시킵니다
+															map.setCenter(new kakao.maps.LatLng((Number)(result[0].y) + 0.0011, result[0].x - 0.0021));
+														} else {
+															map.setCenter(new kakao.maps.LatLng((Number)(result[0].y) + 0.0011, result[0].x - 0.0013));
+														}
+
+													}
+												});
+												$("#map_resName").html(obj.resName);
+												$("#map_resCategory").html(obj.resCategory);
+												$("#map_resAddress").html(obj.resAddress);
+											},
+											error: function (e) {
+												console.log("에러에러");
+											}
+										});
+									})
+								}
+
+								$.map_button();
+
+							});
+
+						</script>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--지도모델 끝-->
+
+
+	</main><!-- End #main -->
+</body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</html>

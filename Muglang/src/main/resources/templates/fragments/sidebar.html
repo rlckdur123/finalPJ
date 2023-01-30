@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko"
+	  xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+	<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			$(function() {
+		
+			});
+		</script>
+	</th:block>
+	</head>
+	<body>
+	  <!-- ======= Sidebar ======= -->
+	  <aside th:fragment="sidebar" id="sidebar" class="sidebar">
+	    <div id="user_info">
+	      <img class="img-fluid rounded-circle profileBox" src="/upload/defaultImg.png" style="width:150px;height:150px;margin-bottom: 20px;">
+	 									
+	      <h4 id="loginUserId" ></h4>
+	      <span id="loginUserEmail" ></span>
+
+
+	      
+	      <div id="user_content">
+	        <div class="user_content">
+	          <p class="user_content_name">게시물</p>
+	          <p class="user_content_info">
+		          <a th:href="@{/user/myBoard}" style="color:black;" id="cntPost"></a>
+	          </p>
+	        </div>
+	        <div class="user_content">
+	          <p class="user_content_name">팔로워</p></a>
+	          <p class="user_content_info"><a th:href="@{/user/follower}" style="color:black;" id="cntFollower"></a></p>	         					
+	        </div>
+	        <div class="user_content">
+	          <p class="user_content_name">팔로잉</p>
+	          <p class="user_content_info"><a th:href="@{/user/following}" style="color:black;" id="cntFollowing"></a></p>
+	        </div>
+	      </div>
+	    </div>
+	
+	    <ul class="sidebar-nav" id="sidebar-nav">
+	      
+	      <li class="nav-heading">Pages</li>
+	      <li class="nav-item">
+	        <a class="nav-link collapsed" th:href="@{/user/profile}">
+	          <i class="bi bi-person"></i>
+	          <span>Profile</span>
+	        </a>
+	      </li><!-- End Profile Page Nav -->
+	
+	      <li class="nav-item">
+	        <a class="nav-link collapsed" th:href="@{/board/userFAQ}">
+	          <i class="bi bi-question-circle"></i>
+	          <span>F.A.Q</span>
+	        </a>
+	      </li><!-- End F.A.Q Page Nav -->
+	
+	      <li class="nav-item">
+	        <a class="nav-link collapsed" th:href="@{/user/logout}">
+	          <i class="bi bi-box-arrow-in-right"></i>
+	          <span>LogOut</span>
+	        </a>
+	      </li><!-- End Login Page Nav -->
+	
+	
+	    </ul>
+	
+	  </aside><!-- End Sidebar-->
+	</body>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout_chat}">
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+
+
+		</script>
+	</th:block>
+	<link href="//fonts.googleapis.com/earlyaccess/nanumgothic.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		
+		<div id="aa">
+			<h1>&emsp;OPEN CHAT</h1>
+			<ul>
+				<li th:each="room : ${rooms}" style="list-style: none;">
+					<form th:action="@{/chat/rooms}" method="post">
+						<input type="hidden" id="enter" name="id" th:value="${room.chatRoomId}">
+						<input type="submit" th:value="${room.chatRoomName}" id="list" 
+							style="width: 600px; margin-bottom: 10px; height: 65px;
+							       border-radius: 10px; background-color: #C8D9FC; 
+							       border-color: #C8D9FC; font-size: x-large; 
+							       font-family: 'Nanum Barun Gothic';">
+					</form>
+				</li>
+			</ul>
+		</div>
+	</main>
+</body>
+
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hot Keywords Now</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+  </head>
+  <body>
+	  <main layout:fragment="main" id="main" class="main">
+		  <!-- 인기 검색어 DB에서 끌고온 HotKeywords -->
+	  <div class="m-5">
+		  <div class="col-sm-12" style="width: 60%;">
+		  	<div class="tit">
+				<h4 class="box-title">DB에 저장된 검색어 순위</h4>
+			</div>
+			<div class="d-flex justify-content-end">
+				<button type="button" class="btn btn-outline-primary" id="udtBtn">결정</button>&emsp;
+				<button type="button" class="btn btn-outline-danger" id="delBtn">삭제</button>&emsp;
+			</div><br>
+			<table class="table" id="topList">
+			  <colgroup>
+				<col style="width: 15%;">
+				<col style="width: 15%;">
+				<col style="width: 40%;">
+				<col style="width: 15%;">
+				<col style="width: 15%;">
+			  </colgroup>
+			  <thead>
+			    <tr>
+				  <th scope="col" style="text-align: center;">
+					  <input class='form-check-input mt-0'  type="checkbox" name="checkAll" id="checkAll" title="Check All">
+				  </th>	
+			      <th scope="col" style="text-align: center;">순위</th>
+			      <th scope="col" style="text-align: center;">키워드</th>
+			      <th scope="col" style="text-align: center;">사용자 화면</th>
+			      <th scope="col" style="text-align: center;">검색 횟수</th>
+			    </tr>
+			  </thead>
+			  <tbody>
+			    <tr name="hotKeywordSet" th:each="hot, stat : ${hotKeywords}" class="jul">
+					<input type="hidden" th:id="'bfHotKeyword' + ${stat.index}"  th:value="${hot.hotKeyword}">
+				  <td style="text-align: center;">
+					  <input class='form-check-input mt-0' type="checkbox" name="checkEach" th:value="${hot.hotKeyword}">
+				  </td>
+			      <th style="text-align: center;" th:text="${stat.count}"></th>
+			      <td style="text-align: center;">
+					  <input th:id="'hotKeyword' + ${stat.index}" type="text" th:value="${hot.hotKeyword}" style="text-align: center;">
+					  </td>
+			      <td style="text-align: center;" th:switch="${hot.confirmYn}">
+					  <input th:case="'Y'" th:id="'confirmYn' + ${stat.index}" class="btn btn-primary ynBtn" type="button" style="width:40px; text-align: center;" th:value="${hot.confirmYn}" name="Y">
+					  <input th:case="'N'" th:id="'confirmYn' + ${stat.index}" class="btn btn-danger ynBtn" type="button" style="width:40px; text-align: center;" th:value="${hot.confirmYn}" name="N">
+				  </td>
+			      <td style="text-align: center;">
+					  <input th:id="'numOfTime' + ${stat.index}" type="text" th:value="${hot.numOfTime}" style="width:60px; text-align: center;">
+			      </td>
+			    </tr>
+			  </tbody>
+			</table>
+			<nav aria-label="Page navigation" class="d-flex justify-content-center">
+			  <ul class="pagination" th:if="${hotKeywords.totalElements > 0}"
+			  						 th:with="pageNumber = ${hotKeywords.pageable.pageNumber},
+			  						          pageSize = ${hotKeywords.pageable.pageSize},
+			  						          totalPages = ${hotKeywords.totalPages},
+			  						          startPage = ${T(java.lang.Math).floor(pageNumber / pageSize) * pageSize + 1},
+			  						          tempEndPage = ${startPage + pageSize -1},
+			  						          endPage = ${tempEndPage > totalPages ? totalPages : tempEndPage}">
+			    <li class="page-item" th:if="${pageNumber > 0}">
+			      <a class="page-link" th:href="@{/hotKeywords/getKeywords(page=${pageNumber - 1})}" aria-label="Previous">
+			        <span aria-hidden="true">&laquo;</span>
+			      </a>
+			    </li>
+			    <li class="page-item" th:each="page : ${#numbers.sequence(startPage, endPage)}">
+					<a class="page-link" th:href="@{/hotKeywords/getKeywords(page=${page -1})}" th:text="${page}"></a>
+				</li>
+			    <li class="page-item" th:if="${pageNumber < totalPages - 1}">
+			      <a class="page-link" th:href="@{/hotKeywords/getKeywords(page=${pageNumber + 1})}" aria-label="Next">
+			        <span aria-hidden="true">&raquo;</span>
+			      </a>
+			    </li>
+			  </ul>
+			</nav>
+			</div>
+		</div>
+	</main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
+    <th:block layout:fragment="script">
+		<script th:inline="javascript">
+			// 수정 데이터를 넘겨주기 위한 배열
+			const hotKeywordArr = [];
+			
+			/*<![CDATA[*/
+			$(function () {
+				
+				// 결정 버튼 숨기기
+				$("#udtBtn").hide();
+				
+				// DB 테이블 체크박스 전체 선택
+				$("#checkAll").on("click", function() {
+						if($("#checkAll").is(":checked")) $("input[name='checkEach']").prop("checked", true);
+						else $("input[name='checkEach']").prop("checked", false); 
+				});// DB 테이블 체크박스 전체 선택
+				
+				// 사용자 화면 Y or N 버튼 활성화
+				$(".ynBtn").on("click", function() {
+					$("#udtBtn").show();
+					if($(this).val() == 'N') {
+						$(this).val('Y');
+						$(this).attr("class", "btn btn-primary ynBtn");
+						$(this).attr("name", "Y");
+					} 
+					else {
+						$(this).val('N');
+						$(this).attr("class", "btn btn-danger ynBtn");
+						$(this).attr("name", "N");
+					}
+				});// 사용자 화면 Y or N 버튼 활성화
+				
+				// 선택한 키워드 삭제 요청
+				$("#delBtn").on("click", function() {
+					
+					// 값들을 넣기 위한 배열 선언
+					let delWordsArr = new Array();
+					
+					// 체크박스에 체크된 값을 가져오기
+					$("input:checkbox[name=checkEach]").each(function () {
+						if($(this).is(":checked") == true) {
+							delWordsArr.push($(this).val());
+						}
+					});
+					
+					$.ajax({
+						url: "/hotKeywords/delKeywords",
+						type: "delete",
+						data: {delWords : delWordsArr},
+						dataType : 'json',
+  						traditional: true,
+						success: function() {
+							alert("삭제되었습니다.");
+							window.location.reload();
+						},
+						error: function(e) {
+							console.log("ERROR: " + e);
+						}
+					});
+				});// 선택한 키워드 삭제 요청
+				
+				// 수정 했을 때 
+				$(".jul").on("change", function() {
+					$("#udtBtn").show();	
+				});
+				
+			// 결정 버튼 클릭 시
+				$("#udtBtn").on("click", function() {
+					const yLength = $("input[name='Y']").length;
+					
+					// 사용자 화면에 보여줄 검색어 개수 확인
+					if(yLength > 10) {
+						alert("사용자 화면에 보여줄 검색어는 10개이하만 가능합니다!!!\n현재 Y인 검색어 개수: " + yLength);
+						window.location.reload();
+						return;
+					} else if(yLength < 10) {
+						let yn = confirm(yLength + "개의 검색어만 사용자 화면에 보여집니다. 진행하시겠습니까?");
+						if(yn == false){
+							alert("취소되었습니다!!!")
+							return;
+						}
+					}
+		
+					
+					// 반복문으로 각각의 벨류를 키에 넣어줌
+					$("tr[name='hotKeywordSet']").each(function(index) {
+						const hotKeywordObj = {
+							hotKeyword: $("#hotKeyword" + index).val(),
+							confirmYn: $("#confirmYn" + index).val(),
+							numOfTime: $("#numOfTime" + index).val(),
+							bfHotKeyword: $("#bfHotKeyword" + index).val()
+						};
+						// 반복문이 돌 때 마다 hotKeywordObj를 넣어줌
+						hotKeywordArr.push(hotKeywordObj);
+					});
+					
+					$.ajax({
+						url: "/hotKeywords/udtKeywords",
+						type: "put",
+						data: JSON.stringify(hotKeywordArr),
+						dataType: "json",
+						contentType: "application/json",
+						async:false,
+						success: function() {
+							alert("수정되었습니다.");
+							window.location.reload();
+						},
+						error: function(e) {
+							console.log("ERROR: " + e);
+						}
+					});
+					
+					
+				});
+				
+				
+				
+				
+						
+			});							
+			/*]]>*/
+		</script>
+		</th:block>
+  </body>
+</html>
+

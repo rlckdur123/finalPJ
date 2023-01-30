@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<body>
+	<!-- ======= Sidebar ======= -->
+	<aside th:fragment="sidebar" id="sidebar" class="sidebar">
+		<ul class="sidebar-nav" id="sidebar-nav">
+
+			<li class="nav-heading">admin page</li>
+			<li class="nav-item">
+				<a class="nav-link collapsed" th:href="@{/user/getAdminUserList}">
+					<i class="bi bi-person"></i>
+					<span>회원관리</span>
+				</a>
+			</li><!-- End Profile Page Nav -->
+
+			<li class="nav-item">
+				<a class="nav-link collapsed" data-bs-target="#icons-nav" data-bs-toggle="collapse" href="#">
+					<i class="ri-alarm-warning-line"></i><span>신고관리</span><i class="bi bi-chevron-down ms-auto"></i>
+				</a>
+				<ul id="icons-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+					<li>
+						<a th:href="@{/admin/userReport}">
+							<i class="bi bi-circle"></i><span>신고 회원 관리</span>
+						</a>
+					</li>
+					<li>
+						<a th:href="@{/admin/postReport}">
+							<i class="bi bi-circle"></i><span>신고 글 관리</span>
+						</a>
+					</li>
+					<li>
+						<a th:href="@{/admin/commentReport}">
+							<i class="bi bi-circle"></i><span>신고 댓글 관리</span>
+						</a>
+					</li>
+				</ul>
+			</li><!-- End Icons Nav -->
+			
+			<li class="nav-item">
+				<a class="nav-link collapsed" th:href="@{/hotKeywords/getKeywords}">
+					<i class="bi bi-card-list"></i>
+					<span>검색관리</span>
+				</a>
+			</li>
+
+			<li class="nav-item">
+				<a class="nav-link collapsed" th:href="@{/board/adminFAQ}">
+					<i class="bi bi-question-circle"></i>
+					<span>고객센터</span>
+				</a>
+			</li>
+
+		</ul>
+
+	</aside><!-- End Sidebar-->
+</body>
+
+
+
+</html>

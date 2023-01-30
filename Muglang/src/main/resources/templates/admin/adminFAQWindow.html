@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout_admin}">
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			$(function () {
+				//퀼 텍스트 에어리어 소환
+				new Quill('.quill-editor-default', {
+					theme: 'bubble'
+				});
+
+				//유알엘
+				const url = new URL(window.location.href);
+
+				const urlParams = url.searchParams;
+
+				const boardId = urlParams.get("boardId");
+				console.log(boardId)
+				$.ajax({
+
+					url: '/board/getAdminFAQ',
+					type: 'get',
+					data: {boardId: boardId},
+					success: function (obj) {
+						$("#boardId").val(obj.item.boardId);
+						$("#boardTitle").val(obj.item.boardTitle);
+						$("#boardContent").val(obj.item.boardContent);
+					},
+					error: function (e) {
+						console.log(e);
+					}
+				});
+				$("#inputBtn").on("click", function () {
+					$.ajax({
+
+						url: '/board/updateBoard',
+						type: 'post',
+						data: {
+							boardId: $("#boardId").val(),
+							boardContent: $("#boardContent").val(),
+							boardTitle: $("#boardTitle").val()
+
+						},
+						success: function (obj) {
+							console.log("서브밋 성공");
+							window.opener.closeCallback();
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+				})
+				$("#deleteBtn").on("click", function () {
+					$.ajax({
+
+						url: '/board/deleteBoard',
+						type: 'post',
+						data: {
+							boardId: $("#boardId").val()
+						},
+						success: function (obj) {
+							window.opener.closeCallback();
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+
+
+				})
+
+			});
+		</script>
+	</th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<div class="pagetitle">
+			<h1>Admin Page</h1>
+			<nav>
+				<ol class="breadcrumb">
+				</ol>
+			</nav>
+		</div><!-- End Page Title -->
+
+		<section class="section dashboard">
+			<div class="row">
+
+				<!-- Left side columns -->
+				<div class="col-lg-8">
+					<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-body">
+									<h5 class="card-title">질문</h5>
+									<div class="accordion accordion-flush" id="accordionFlush">
+										<form action="/board/updateBoard" method="post" id="inputForm">
+											<div class="accordion-item">
+												<h2 class="accordion-header" id="flush-heading">
+													<button class="accordion-button collapsed" type="button"
+														data-bs-toggle="collapse" data-bs-target="#flush-collapse"
+														aria-expanded="false" aria-controls="flush-collapse"><input
+															id="boardTitle" style="width: 300px;" name="boardTitle">
+														<input id="boardId" type="hidden" name="boardId">
+													</button>
+												</h2>
+												<div id="flush-collapse" class="accordion-collapse collapse"
+													aria-labelledby="flush-heading">
+													<div class="accordion-body">
+														<input id="boardContent" style="width: 300px;"
+															name="boardContent">
+													</div>
+												</div>
+											</div>
+											<input type="button" id="inputBtn" value="수정">
+											<input type="button" id="deleteBtn" value="삭제">
+										</form>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div><!-- End Left side columns -->
+
+
+			</div>
+		</section>
+
+	</main><!-- End #main -->
+</body>
+
+</html>

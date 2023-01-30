@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout_admin}">
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			/*<![CDATA[*/
+
+
+			function new_window(TargetUserId) {
+				window.open(
+					"userWindow?TargetUserId=" + TargetUserId,
+					"user",
+					"width=200, height=300, top=50, left=50"
+				);
+			}
+			function new_windows() {
+				window.open(
+					"userOrderWindow",
+					"users",
+					"width=400, height=300, top=50, left=50"
+				);
+			}
+
+			/*]]>*/
+		</script>
+	</th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<div class="pagetitle">
+			<h1>Admin Page</h1>
+			<nav>
+				<ol class="breadcrumb">
+				</ol>
+			</nav>
+		</div><!-- End Page Title -->
+
+		<section class="section dashboard">
+			<div class="row">
+
+				<!-- Left side columns -->
+				<div class="col-lg-8">
+					<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-body">
+									<h5 class="card-title">신고 회원 관리</h5>
+
+									<!-- Table with hoverable rows -->
+									<table class="table table-hover" id="report_member_tb">
+										<thead>
+											<tr>
+												<th scope="col" style="width: 20%;">신고 번호</th>
+												<th scope="col" style="width: 20%;">신고한 유저 아이디</th>
+												<th scope="col" style="width: 20%;">신고된 유저 아이디</th>
+												<th scope="col" style="width: 20%;">신고 날짜</th>
+												<th scope="col" style="width: 20%;"><input type="button"
+														th:onclick="new_windows()" value="우선순위 보기"></th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr th:each="report : ${reportList}">
+												<td scope="row" th:text="${report.reportId}"></td>
+												<td th:text="${report.sourceUserId}"></td>
+												<td th:text="${report.TargetUserId}"></td>
+												<td
+													th:text="${report.reportDate eq null ? '' : #strings.substring(report.reportDate, 0, 10)}">
+												</td>
+												<td>
+													<!--<input type="button" th:onclick="new_window([[${report.TargetUserId}]])" value="보기">-->
+												</td>
+											</tr>
+										</tbody>
+									</table>
+									<!-- End Table with hoverable rows -->
+								</div>
+							</div>
+							<div class="col-12">
+								<nav aria-label="Page navigation example">
+									<ul class="pagination" th:if="${reportList.totalElements > 0}" th:with="pageNumber = ${reportList.pageable.pageNumber},
+												    pageSize = ${reportList.pageable.pageSize},
+												    totalPages = ${reportList.totalPages},
+												    startPage = ${T(java.lang.Math).floor(pageNumber / pageSize) * pageSize + 1},
+												    tempEndPage = ${startPage + pageSize - 1},
+												    endPage = ${tempEndPage > totalPages ? totalPages : tempEndPage}">
+
+										<li class="page-item" th:if="${pageNumber > 0}">
+											<a class="page-link" page-link th:href="@{/admin/userReport(
+											page=${pageNumber - 1}
+										)}">이전</a>
+										</li>
+										<li class="page-item" th:if="${pageNumber == 0}" style="cursor: pointer;">
+											<a class="page-link">이전</a>	
+										</li>
+										<li class="page-item"
+											th:each="page : ${#numbers.sequence(startPage, endPage)}">
+											<a class="page-link" page-link th:href="@{/admin/userReport(
+
+											page=${page - 1},
+											searchCondition=${searchCondition},
+											searchKeyword=${searchKeyword}
+										)}" th:text="${page}"></a>
+
+										</li>
+										<li class="page-item" th:if="${pageNumber < totalPages - 1}">
+											<a class="page-link" page-link th:href="@{/admin/userReport(
+
+											page=${pageNumber + 1},
+											searchCondition=${searchCondition},
+											searchKeyword=${searchKeyword}
+										)}">다음</a>
+										</li>
+										<li class="page-item" th:if="${pageNumber == (totalPages -1)}" style="cursor: pointer;">
+											<a class="page-link">다음</a>	
+										</li>
+									</ul>
+								</nav>
+							</div>
+						</div>
+					</div>
+				</div><!-- End Left side columns -->
+
+				<!-- Right side columns -->
+				<div class="col-lg-4 col-xxl-3">
+
+					<div class="card" style="text-align: center;">
+						<h5 class="card-title" style="font-weight: bold;">검색</h5>
+						<div class="card-body">
+							<form class="form-inline" role="form">
+								<input type="text" placeholder="신고 유저 검색" onfocus="this.placeholder=''"
+									onblur="this.placeholder='신고 유저 검색!!'">
+								<input type="button" value="검색">
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main><!-- End #main -->
+</body>
+
+</html>

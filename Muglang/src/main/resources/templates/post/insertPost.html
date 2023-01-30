@@ -1,0 +1,188 @@
+<!DOCTYPE>
+
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout}">
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			$(function () {
+				//퀼 텍스트 에어리어 소환
+				new Quill('.quill-editor-default', {
+					theme: 'bubble'
+				});
+				//게시글에서 메세지버튼 누르면 메세지 창 나옴
+				$("#msg_btn").click(function (e) {
+					$('#msgModal').modal("show");
+				});
+				
+				//게시글 작성에서 사진 버튼 누르면 input-file 실행
+				$("#file_select_btn").click(function (e) {
+					$("#file_select").click();
+				});
+				
+				$('#insertBtn').click(function(e) {
+					$('#textContent').val($('#content').val());
+					$('#restName').val($('#resturantName').val());
+					console.log("작성글 버튼 작동");
+					$('#postForm').submit();
+					
+				});
+			});
+		</script>
+	</th:block>
+</head>
+	
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<section class="section dashboard">
+			<div class="row">
+				<!--왼쪽 라인을 8로 오른쪽 라인을 4 비율로 나눔(페이지 100% = 12)-->
+				<!-- Left side columns -->
+				<div class="col-lg-8">
+					<div class="row">
+						<!-- Recent Sales -->
+						<div class="col-12">
+							<!-- 작성 하는 부분 -->
+							<div class="card recent-sales overflow-auto">
+								<div class="card-body">
+									<h5 class="card-title">What's happening?</h5>
+									<!-- Quill Editor Default(퀼 에디터 텍스트 에어리어) -->
+									<div style="border-radius: 8px;">
+										<div class="quill-editor-default">
+											<h2>write your daily life</h2>
+										</div>
+										<input type="text" id="resturantName" name="resturantName" val="">
+										<textarea id="content" col=30 row="20"></textarea>
+									</div>
+									<!-- End Quill Editor Default -->
+									<br>
+									<!-- 게시글 작성을 form 으로 넘길예정 hidden으로 텍스트 에어리어 값을 받아올것임 -->
+									<form id="postForm" name="postForm" style="float: right; margin-bottom: -13px; margin-top: -13px"
+										action="/post/insertPost" method="post">
+										<input type="file" id="file_select" style="display: none;">
+										<!-- 이미지에 클릭 이벤트를 넣어서 클릭시 타입 파일 실행 -->
+										<i id="file_select_btn" class="ri-image-2-line"
+											style="font-size: 30px; color: black; cursor: pointer; vertical-align:middle;">
+										</i>
+										
+										<input type="hidden" id="textContent" name="postContent" value="">
+										<input type="hidden" id="restName" name="restNm" value="">
+										<input type="hidden" id="restRating" name="restRating" value="1">
+										<input type="hidden" id="postRating" name="postRating" value="1">
+										<!--버튼에 submit 스크립트 넣을예정-->
+										<input type="button" id="insertBtn" class="btn" value="작성"
+											style="background-color: #4154f1; color: white;">
+									</form>
+								</div>
+							</div>
+						</div><!-- End Recent Sales -->
+					</div>
+					<div class="row">
+						<div th:each="post: ${postList}" class="col-12">
+							<div class="card recent-sales">
+								<div class="card-body">
+									<!-- 오른쪽 정렬된 시간, 드롭다운 버튼 -->
+									<div class="filter" style="margin-top: 15px;">
+										<a style="margin-right: 20px;">30분전</a>
+										<a class="icon" href="#" data-bs-toggle="dropdown"><i
+												class="bi bi-three-dots"></i></a>
+										<ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+											<li><a class="dropdown-item" href="#"><i
+														class="ri-alarm-warning-line"></i>&emsp;신고하기</a></li>
+										</ul>
+									</div>
+									<!-- 이름부분 후에 스크립트로 for문 예정 -->
+									<div class="card-title">
+										<img class="img-fluid rounded-circle" src="../assets/img/messages-1.jpg"
+											style="width: 40px;">
+										<a href="#" class="card-title" th:text="${post.postTitle}"></a>
+									</div>
+									<!-- 게시글 사진 부분 -->
+									<div class="activity" style="margin-bottom: 10px;">
+										<img src="../assets/img/news-1.jpg" style="width: 100%;">
+									</div>
+									<div class="activity">
+										<!-- 게시글 내용부분-->
+										<div th:text="${post.postContent}">
+										</div>
+										<br>
+										<!-- 해시태그 -->
+										<a href="#" style="color: blue;" th:text="">&emsp;#강남맛집</a>
+										<a href="#" style="color: blue;" th:text="">&emsp;#˘ᗜ˘</a>
+										<a href="#" style="color: blue;" th:text="">&emsp;#(๑╹ワ╹)</a>
+									</div>
+									<!-- 좋아요 댓글 아이콘 -->
+									<div class="activity">
+										<a href="#"><i class="ri-heart-3-line"
+												style="font-size: 30px; margin-right: 5px; color:black"></i></a>
+										<a href="#" id="msg_btn"><i class="ri-message-3-line"
+												style="font-size: 30px; margin-right: 5px; color:black;"></i></a>
+										<a href="#"><i class="ri-send-plane-2-line"
+												style="font-size: 30px; margin-right: 5px; color:black;"></i></a>
+										<br>
+										<!--좋아요 숫자 필드-->
+										<a>좋아요 <span>21</span>개</a>
+										<hr>
+									</div>
+									<!-- 친구 식사 했는지 확인 필드 -->
+									<div class="activity" style="text-align: center;">
+										<a href="#"><span>six</span>님 외 16명이 <span>서울 강남구 강남대로 36</span>
+											<span>감성타코</span>에서 식사하셨어요!</a>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div>
+						
+					</div>
+				</div><!-- End Left side columns -->
+
+				<!-- Right side columns -->
+				<div class="col-lg-4 col-xxl-3">
+
+					<!-- Recent Activity -->
+					<div class="card">
+						<div class="card-body">
+							<h5 class="card-title" style="text-align: center; font-size: larger; font-weight: bold; margin-top:10px;">지금 뜨는 먹거리 <span>| Today</span></h5>
+							<div class="activity">
+								<div id="today_eat">
+									<ol>
+									<!--
+										<li><a href="#">#치킨</a></li>
+										<li><a href="#">#보쌈</a></li>
+										<li><a href="#">#연어초밥</a></li>
+										<li><a href="#">#우육면</a></li>
+										<li><a href="#">#마라탕</a></li>
+										<li><a href="#">#짜장면</a></li>
+										<li><a href="#">#라멘</a></li>
+										<li><a href="#">#갈비</a></li>
+										<li><a href="#">#곱창</a></li>
+										<li><a href="#">#막창</a></li> -->
+										
+										<li><a href="#"><b>#치킨</b></a></li>
+										<li><a href="#"><b>#보쌈</b></a></li>
+										<li><a href="#"><b>#연어초밥</b></a></li>
+										<li><a href="#"><b>#우육면</b></a></li>
+										<li><a href="#"><b>#마라탕</b></a></li>
+										<li><a href="#"><b>#짜장면</b></a></li>
+										<li><a href="#"><b>#라멘</b></a></li>
+										<li><a href="#"><b>#갈비</b></a></li>
+										<li><a href="#"><b>#곱창</b></a></li>
+										<li><a href="#"><b>#막창</b></a></li>
+										
+									</ol>
+								</div>
+
+							</div>
+
+						</div>
+					</div><!-- End Recent Activity -->
+				</div><!-- End Right side columns -->
+
+
+			</div>
+		</section>
+	</main>
+</body>
+</html>

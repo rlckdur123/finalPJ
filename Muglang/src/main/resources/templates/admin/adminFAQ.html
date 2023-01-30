@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout_admin}">
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			let pop;
+			const boardList = /*[[${boardList}]]*/;
+
+			/*<![CDATA[*/
+			function new_window(boardId) {
+				
+				pop = window.open(
+					"/admin/adminFAQWindow?boardId="+boardId,
+					"Board",
+					"width=400, height=300, top=50, left=50"
+				);
+				
+			}		
+			function insert_window() {
+				
+				pop = window.open(
+					"/admin/adminFAQInsert",
+					"insert",
+					"width=450, height=300, top=50, left=50"
+				);
+				console.log("실행됨");
+				
+			}			
+			function closeCallback() {
+				pop.close();
+				location.reload();
+			}
+		/*]]>*/
+			$(function() {
+				
+			})
+		</script>
+	</th:block>
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<div class="pagetitle">
+			<h1>Admin Page</h1>
+			<nav>
+				<ol class="breadcrumb">
+				</ol>
+			</nav>
+		</div><!-- End Page Title -->
+
+		<section class="section dashboard">
+			<div class="row">
+
+				<!-- Left side columns -->
+				<div class="col-lg-8">
+					<div class="row">
+						<div class="col-12">
+							<div class="card">
+								<div class="card-body">
+									<h5 class="card-title">자주 묻는 질문</h5>
+
+									<div class="accordion accordion-flush" id="accordionFlush"
+										th:each="board : ${boardList}">
+										<div class="accordion-item">
+											<h2 class="accordion-header" id="flush-heading">
+												<button class="accordion-button collapsed" type="button"
+													data-bs-toggle="collapse"
+													th:data-bs-target="'#flush-collapse'+${board.boardId}"
+													aria-expanded="false" aria-controls="flush-collapse"
+													th:text="${board.boardTitle}">
+												</button>
+											</h2>
+											<div th:id="'flush-collapse'+${board.boardId}"
+												class="accordion-collapse collapse" aria-labelledby="flush-heading">
+												<div class="accordion-body" th:text="${board.boardContent}"></div>
+												
+												<div>
+													<input type="button" th:onclick="new_window([[${board.boardId}]])" value="수정하기">
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<input type="button" th:onclick="insert_window()" value="작성하기">
+							</div>
+						</div>
+					</div>
+				</div><!-- End Left side columns -->
+
+
+			</div>
+		</section>
+
+	</main><!-- End #main -->
+</body>
+
+</html>

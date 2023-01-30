@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+   layout:decorate="~{layouts/layout}">
+
+<!-- head 영역 시작 -->
+<!-- 개별적으로 사용할 css, js 링크 걸기 위해 남겨둠 -->
+
+<head>
+   <th:block layout:fragment="script">
+      <script th:inline="javascript">
+         $(function () {
+            //퀼 텍스트 에어리어 소환
+            new Quill('.quill-editor-default', {
+               theme: 'bubble'
+            });
+  
+            	//유알엘
+            	const url = new URL(window.location.href);
+				
+				const urlParams = url.searchParams;
+				
+				const TargetUserId = urlParams.get("TargetUserId");
+				
+				$.ajax({
+					url: '/post/post',
+					type: 'get',
+					data: {postId: postId},
+					success: function(obj) {
+						$("#postId").text(obj.item.postId);
+						$("#postDate").text(obj.item.postDate == null ?
+													'' :
+													obj.item.postDate.substring(0, 10));
+						$("#postContent").text(obj.item.postContent);
+						$("#restNm").text(obj.item.restNm);
+						$("#userId").text(obj.item.userId);
+
+									   
+					},
+					error: function(e) {
+						console.log(e);
+					}
+			});
+				
+		});
+      </script>
+   </th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+   <main layout:fragment="main" id="main" class="main">
+      <div class="pagetitle">
+         작성자: <h1 id="userId"></h1>
+         글넘버: <h3 id="postId"></h3>
+         작성일:<h4 id="postDate"></h4>
+         작성일:<h4 id="postContent"></h4>
+
+      </div><!-- End Page Title -->
+
+      <section class="section dashboard">
+         <div class="row">
+            <!--왼쪽 라인을 8로 오른쪽 라인을 4 비율로 나눔(페이지 100% = 12)-->
+            <!-- Left side columns -->
+            <div class="col-lg-8">
+               <div class="row">
+                  <!-- Recent Sales -->
+                  <div class="col-12">
+                     <!-- 작성 하는 부분 -->
+                     <div class="card recent-sales overflow-auto">
+                        <div class="card-body">
+                           <h5 class="card-title"></h5>
+                           <!-- Quill Editor Default(퀼 에디터 텍스트 에어리어) -->
+                           <div style="border-radius: 8px;">
+                              <div class="quill-editor-default">
+                                 <h2 id="postContent"></h2>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div><!-- End Recent Sales -->
+               </div>
+               <div class="row">
+                  <div class="col-12">
+                     <div class="card recent-sales">
+                        <div class="card-body">
+                           <!-- 이름부분 후에 스크립트로 for문 예정 -->
+                           <div class="card-title">
+                              <img class="img-fluid rounded-circle" src="../assets/img/messages-1.jpg"
+                                 style="width: 40px;">
+                           </div>
+                           <!-- 게시글 사진 부분 -->
+                           <div class="activity" style="margin-bottom: 10px;">
+                              <img src="../assets/img/news-1.jpg" style="width: 100%;">
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div><!-- End Left side columns -->
+
+
+         </div>
+      </section>
+   </main><!-- End #main -->
+</body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</html>

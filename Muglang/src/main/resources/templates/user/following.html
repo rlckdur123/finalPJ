@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout}">
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			const loginUserId = /*[[${userId}]]*/;
+
+			//댓글 관련 전역변수
+			let postId = 0;
+			let resName = "";
+			let commentId = 0;
+			let text_comment = "";
+			//화면단에 최초로 뿌릴 때 해당 정보를 임시로 저장하는 변수
+			let thisCommentTotalPages = 0;
+			let thisCommentTotalElements = 0;
+
+			//댓글 페이지수
+			let comment_page_num = 0;
+
+			//무한스크롤
+			let page_num = 0;
+			let post_text = "";
+			let totalPages = 1;
+			let scrollYn = false;
+
+			//현재시간
+			let now = new Date();
+
+			//댓글 수정 texteara 크기 자동 증가
+			function resize(obj) {
+				obj.style.height = "1px";
+				obj.style.height = (12 + obj.scrollHeight) + "px";
+			}
+
+			//새 게시글에서 추가된 파일들을 담아줄 배열. File객체로 하나씩 담음
+			let uploadFiles = [];
+			//이미 게시된 게시글의 파일들을 담을 게시글 구분 새로운 임시 배열
+			////
+			let uploadPostFileList = [];
+			//기존 첨부파일 배열
+			let originFiles = [];
+			//각 게시글들의 첨부파일들을 모은 것을 따로 담을 것임..
+			/////
+			let originFileList = [];
+			//변경된 첨부파일 배열
+			let changedFiles = [];
+
+			//파일 게시글 새로 등록한 곳은 따로 배열을 담아 처리할 것임. 분리함.
+			let inputUploadFiles = [];
+			let inputOriginFiles = [];
+
+			//게시글을 이벤트 처리하기위해 정리 해둔 배열들로
+			//포스팅 글들의 id를 관리하는데 사용함.
+			//해당 배열은 파일 처리 이벤트에서 많이 쓰게될 예정.
+			let postIdList = [];
+			let flagList = [];
+			let postFileIdList = [];
+			//게시글 등록후 해당 인덱스 번호에 대한 파일 이미지 조작할 게시글 위치를 등록할 변수
+			//새로 고침을 하거나 다른 페이지로 가면 이 정보는 0으로 초기화됨.
+			let insertIndex = 0;
+
+			$(function () {
+				var following_searchKeyword = "";
+				var following_page_num = 0;
+				let following_totalPages = 0;
+
+
+				//처음 포스트 불러오는 로직
+				$.ajax({
+					url: '/post/getFollowingPost',
+					type: 'get',
+					data: {page: page_num},
+					success: function (obj) {
+						$.get_post(obj);
+					},
+					error: function (e) {
+						console.log("실패실패");
+					}
+				});
+
+				//스크롤 로직
+
+				//스크롤 로직
+				$(window).scroll(function () {
+					if (!scrollYn) {
+						if ($(window).scrollTop() == $(document).height() - $(window).height()) {
+							scrollYn = true;
+							console.log("들어오는 페이지 번호 : " + page_num);
+							if (page_num < totalPages) {
+								$.ajax({
+									url: '/post/getFollowingPost',
+									type: 'get',
+									data: {page: page_num},
+									success: function (obj) {
+										$.get_post(obj);
+										setTimeout(function () {
+											scrollYn = false;
+										}, 1000);
+									},
+									error: function (e) {
+										console.log("실패실패");
+									}
+								});
+							}
+						}
+					}
+				});
+
+
+				//시작시 팔로워 리스트 불러옴 - 처음 팔로워 리스트 로드시 사용하는 처리
+				$.ajax({
+					url: '/social/following',
+					type: 'get',
+					data: {
+						page: following_page_num,
+						searchKeyword: ""
+					},
+					success: function (obj) {
+						console.log("**************팔로워 리스트 최초 로드*************");
+						console.log(obj);
+						console.log(obj.pageItems);
+						console.log(obj.pageItems.content);
+
+						let htmlStr = '';
+						console.log("!!!!!!!!!!!!!!!!!!!!!팔로워 수 : " + obj.pageItems.content.length);
+						for (let i = 0; i < obj.pageItems.content.length; i++) {
+							htmlStr += `
+							<div class="" style="width: 100%; height: 70px;">
+								<a href="/social/otherUser?userId=${obj.pageItems.content[i].userId}"
+	                              <!--친구 사진-->
+	                              <div style="width: 30%; margin-top: 10px; float: left;"><img
+	                                    class="img-fluid rounded-circle" 
+	                                    src="/upload/${obj.pageItems.content[i].followingProfile.userProfileNm}"
+	                                    style="width: 50px; height:50px"></div>
+	                              <!--친구 닉네임, 아이디-->
+	                              <div style="width: 60%; margin-top: 13px; float: left;">
+	                                 <div style="font-weight: bold; color: black;">${obj.pageItems.content[i].userNick}</div>
+	                                 <div style="color: #aaaaaa; font-size: x-small;">
+	                                 ${obj.pageItems.content[i].email}
+	                                 </div>
+	                              </div>
+								</a>
+							</div>`;
+						}
+
+						$("#div_body").html(htmlStr);
+						following_totalPages = obj.pageItems.totalPages;
+					},
+					error: function (e) {
+						console.log(e);
+					}
+				});
+
+				$("#btn_next").click(function () {
+					following_searchKeyword = ""
+					console.log("누르기전following_page_num===" + following_page_num)
+					if (following_page_num == following_totalPages - 1) {
+						return;
+					}
+					following_page_num = following_page_num + 1;
+					console.log("누른 후 following_page_num===" + following_page_num)
+					$.ajax({
+						url: '/social/following',
+						type: 'get',
+						data: {
+							page: following_page_num,
+							searchKeyword: following_searchKeyword
+						},
+						success: function (obj) {
+							console.log(obj)
+							let htmlStr = "";
+							following_totalPages = obj.pageItems.following_totalPages;
+							console.log("팔로워 수 : " + obj.pageItems.content.length);
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+							<div class="" style="width: 100%; height: 70px;">
+								<a href="/social/otherUser?userId=${obj.pageItems.content[i].userId}"
+	                              <!--친구 사진-->
+	                              <div style="width: 30%; margin-top: 10px; float: left;"><img
+	                                    class="img-fluid rounded-circle" 
+	                                    src="/upload/${obj.pageItems.content[i].followingProfile.userProfileNm}"
+	                                    style="width: 50px; height:50px"></div>
+	                              <!--친구 닉네임, 아이디-->
+	                              <div style="width: 60%; margin-top: 13px; float: left;">
+	                                 <div style="font-weight: bold; color: black;">${obj.pageItems.content[i].userNick}</div>
+	                                 <div style="color: #aaaaaa; font-size: x-small;">
+	                                 ${obj.pageItems.content[i].email}
+	                                 </div>
+	                              </div>
+								</a>
+							</div>`;
+							}
+							$("#div_body").html(htmlStr)
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+
+				});
+
+				$("#btn_prev").click(function () {
+					following_searchKeyword = ""
+					console.log("누르기전following_page_num===" + following_page_num);
+					if (following_page_num < 1) {
+						return;
+					}
+					following_page_num = following_page_num - 1;
+					console.log("누른후following_page_num===" + following_page_num);
+					$.ajax({
+						url: '/social/following',
+						type: 'get',
+						data: {
+							page: following_page_num,
+							searchKeyword: following_searchKeyword
+						},
+						success: function (obj) {
+							console.log(obj)
+							var htmlStr = "";
+							following_totalPages = obj.pageItems.following_totalPages;
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+							<div class="" style="width: 100%; height: 70px;">
+								<a href="/social/otherUser?userId=${obj.pageItems.content[i].userId}"
+	                              <!--친구 사진-->
+	                              <div style="width: 30%; margin-top: 10px; float: left;"><img
+	                                    class="img-fluid rounded-circle" 
+	                                    src="/upload/${obj.pageItems.content[i].followingProfile.userProfileNm}"
+	                                    style="width: 50px; height:50px"></div>
+	                              <!--친구 닉네임, 아이디-->
+	                              <div style="width: 60%; margin-top: 13px; float: left;">
+	                                 <div style="font-weight: bold; color: black;">${obj.pageItems.content[i].userNick}</div>
+	                                 <div style="color: #aaaaaa; font-size: x-small;">
+	                                 ${obj.pageItems.content[i].email}
+	                                 </div>
+	                              </div>
+								</a>
+							</div>`;
+							}
+							$("#div_body").html(htmlStr)
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+
+				})
+				//검색 이벤트 
+				$("#btn_search").click(function () {
+					following_searchKeyword = $("#following_searchKeyword").val()
+					console.log(following_searchKeyword)
+					$.ajax({
+						url: '/social/followingSearch',
+						type: 'get',
+						data: {
+							page: 0,
+							searchKeyword: following_searchKeyword
+						},
+						success: function (obj) {
+							let htmlStr = "";
+							following_totalPages = obj.pageItems.following_totalPages;
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+									<div style="max-height: 30em;">
+										<div style="width: 100%; height: 70px; text-align:center;">
+											<a href="/social/otherUser?userId=${obj.pageItems.content[i].userId}">
+												<div style="width: 25%; margin-top: 10px; float: left;">
+													<img class="img-fluid rounded-circle"
+												 		src="/upload/${obj.pageItems.content[i].followingProfile.userProfileNm}" 
+												 		style="width: 50px; height:50px;">
+												</div>
+												<div style="width: 65%; margin-top: 13px; float: left; font-weight: bold; color: black;">
+													${obj.pageItems.content[i].userNick}
+												</div>
+												<div style="width: 65%; color: #aaaaaa; font-size: x-small; float:left;">
+			                                 		${obj.pageItems.content[i].email}
+			                                	</div>
+											</a>
+										</div>
+									</div>`
+							}
+							$("#follow_search").html(htmlStr)
+							$('#followModal').modal("show");
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+
+				})
+
+
+
+			});
+		</script>
+	</th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<input type="hidden" th:value="${userId}" id="loginUserId">
+		<div class="pagetitle">
+			<h1>Following</h1>
+			<nav>
+				<ol class="breadcrumb">
+					<li class="breadcrumb-item"><a th:href="@{/}">Home</a></li>
+					<li class="breadcrumb-item active">Following</li>
+				</ol>
+			</nav>
+		</div><!-- End Page Title -->
+
+		<section class="section dashboard">
+			<div class="row">
+
+				<!-- Left side columns -->
+				<div class="col-lg-8">
+					<div class="row">
+						<div id="post_div" class="col-12"></div>
+					</div>
+				</div><!-- End Left side columns -->
+
+				<!-- Right side columns -->
+				<div class="col-lg-4 col-xxl-3">
+					<div class="card" style="text-align: center;">
+						<h5 class="card-title" style="font-weight: bold;">Following</h5>
+						<!--검색-->
+						<div class="card-body">
+							<input type="text" class="form-control" placeholder="팔로워 검색" onfocus="this.placeholder=''"
+								onblur="this.placeholder='이름으로 검색'" id="following_searchKeyword"
+								style="width:75%; margin-right:3%; float:left;">
+							<input type="button" class="form-control" value="검색" id="btn_search"
+								style="width:22%; float:left;">
+						</div>
+						<!--붙여넣는곳-->
+						<div class="card-body" style="position: relative;">
+							<button id="btn_prev"
+								style="position: absolute;  top: 40%; left:4%; transform: translate(-50%, -50%); background:none; border:none;">
+								<img th:src="@{/assets/img/left_btn.png}">
+							</button>
+							<button id="btn_next"
+								style="position: absolute;  top: 40%; right:4%; transform: translate(50%, -50%); background:none; border:none;">
+								<img th:src="@{/assets/img/right_btn.png}">
+							</button>
+							<div id="div_body"></div>
+						</div>
+					</div>
+				</div>
+
+
+			</div>
+		</section>
+		<!--검색 모달-->
+		<div class="modal fade" id="followModal" role="dialog">
+			<div class="modal-dialog modal-dialog-centered modal-sm">
+				<div class="modal-content" id="modal-content">
+					<div class="modal-body overflow-auto" id="follow_search">
+					
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- 댓글 모델 -->
+		<div class="modal fade" id="msgModal" role="dialog">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content" id="comment-content">
+					<div class="modal-header">
+						<!-- 댓글 작성 -->
+						<textarea id="" style="width:70%; height: 30px; overflow:hidden; resize: none;"
+							spellcheck="false" onkeydown="resize(this)" onkeyup="resize(this)">asdf</textarea>
+						<button class="btn">작성</button>
+					</div>
+					<!-- 댓글 들어가는곳 -->
+					<div class="modal-body overflow-auto">
+						<div style="max-height: 30em;">
+							<div class="comment_info" style="margin-bottom: 20px; position:relative">
+								<div class="filter" style="margin-top: 15px; position: absolute; top:-12px; right:10p;">
+									<a class="icon" href="#" data-bs-toggle="dropdown"><i
+											class="bi bi-three-dots"></i></a>
+									<ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+										<li><a class="dropdown-item" href="#">
+												</i>&emsp;신고하기</a></li>
+									</ul>
+								</div>
+								<img class="img-fluid rounded-circle" src="../assets/img/messages-2.jpg"
+									style="width: 40px;">
+								<span style="margin-left: 10px;"><a href="#"
+										style="color: black; cursor:pointer;">머글랭</a></span>
+								<div style="word-break: keep-all;">Lorem ipsum dolor, sit amet consectetur adipisicing
+									elit. Velit, ullam recusandae
+									odit suscipit cumque nihil nulla ipsam obcaecati doloremque temporibus vel magni et
+									cupiditate repudiandae esse ea repellat, laudantium inventore!
+								</div>
+							</div>
+							<!--<div id="comment_scroll_div" class="overflow-auto"></div>-->
+							<!--스크롤이 맨 아래에 닿으면 이 위치에 작성됨-->
+						</div>
+					</div>
+					<div id="comment_scroll_div" class="col-12"></div>
+				</div>
+			</div>
+
+		</div>
+		
+		<!-- 식사 모달 모델 -->
+		<div class="modal fade" id="eatModal" role="dialog">
+			
+		</div>
+
+
+		<!-- 식당 정보 표시 모델 -->
+		<div class="modal fade" id="map_modal" role="dialog">
+			<div class="modal-dialog modal-dialog-centered modal-lg">
+				<div class="modal-content" id="modal-content">
+					<div class="modal-body">
+						<div
+							style="width:200px; background-color:rgba(255, 255, 255, 0.8); text-align:center; position:absolute; z-index:990;">
+							<div id="map_resName" style="width:100%; font-size:large; font-weight:bold; margin:10px 0">
+							</div>
+							<div id="map_resCategory" style="width:100%; font-size:xx-small;"></div>
+							<div id="map_resAddress"
+								style="width:100%; font-size:smaller; border-top:solid #c8c8c8 1px; margin-top:5px;">
+							</div>
+						</div>
+						<div id="map" style="width:100%; height:450px;"></div>
+
+
+						<script type="text/javascript"
+							src="//dapi.kakao.com/v2/maps/sdk.js?appkey=4b4b486ea62719eefbee2b4ac9dd7c89&libraries=services"></script>
+						<script>
+							$(function () {
+								//지도 모달 부르는 로직
+								$.map_button = function () {
+									$(".map_icon").click(function (e) {
+										let postId = e.target.id;
+										$.ajax({
+											url: '/post/PostMap',
+											type: 'get',
+											data: {
+												postId: postId
+											},
+											success: function (obj) {
+												//모달을 실행하고
+												$('#map_modal').modal("show");
+												setTimeout(function () {
+													map.relayout();
+												}, 500);
+
+												//카카오 맵 호출
+												var mapContainer = document.getElementById('map'), // 지도를 표시할 div 
+													mapOption = {
+														center: new kakao.maps.LatLng(33.450701, 126.570667), // 지도의 중심좌표
+														level: 2 // 지도의 확대 레벨
+													};
+
+												// 지도를 생성합니다    
+												var map = new kakao.maps.Map(mapContainer, mapOption);
+
+
+												// 주소-좌표 변환 객체를 생성합니다
+												var geocoder = new kakao.maps.services.Geocoder();
+
+												// 주소로 좌표를 검색합니다
+												geocoder.addressSearch(obj.resAddress, function (result, status) {
+
+													// 정상적으로 검색이 완료됐으면 
+													if (status === kakao.maps.services.Status.OK) {
+
+														var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+
+														// 결과값으로 받은 위치를 마커로 표시합니다
+														var marker = new kakao.maps.Marker({
+															map: map,
+															position: coords
+														});
+
+														//검색해봐도 해결 방법이 없어서 약간의 가라/노가다 섞음
+														//화면 크기에 따라 중앙 다르게 설정
+														if ($(window).width() >= 992) {
+															// 지도의 중심을 결과값으로 받은 위치로 이동시킵니다
+															map.setCenter(new kakao.maps.LatLng((Number)(result[0].y) + 0.0011, result[0].x - 0.0021));
+														} else {
+															map.setCenter(new kakao.maps.LatLng((Number)(result[0].y) + 0.0011, result[0].x - 0.0013));
+														}
+
+													}
+												});
+												$("#map_resName").html(obj.resName);
+												$("#map_resCategory").html(obj.resCategory);
+												$("#map_resAddress").html(obj.resAddress);
+											},
+											error: function (e) {
+												console.log("에러에러");
+											}
+										});
+									})
+								}
+
+								$.map_button();
+
+							});
+
+						</script>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--지도모델 끝-->
+	</main><!-- End #main -->
+</body>
+
+</html>

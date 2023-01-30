@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko"
+	  xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	  layout:decorate="~{layouts/layout}"
+	  >
+
+<!-- 로그인 후 게시물을 열람하는 과정이므로 로그인 화면으로 이동하게 해줌. -->
+<head>
+	<th:block layout:frament="css">
+		<style>
+		
+		</style>
+	</th:block>
+	
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+
+			$(function() {
+				window.location.href="/home/home";
+			});
+		</script>
+	</th:block>
+</head>
+
+<body>
+
+</body>
+
+</html>

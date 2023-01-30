@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+   layout:decorate="~{layouts/layout_admin}">
+
+<!-- head 영역 시작 -->
+<!-- 개별적으로 사용할 css, js 링크 걸기 위해 남겨둠 -->
+
+<head>
+   <th:block layout:fragment="script">
+      <script th:inline="javascript">
+         $(function () {
+            //퀼 텍스트 에어리어 소환
+            new Quill('.quill-editor-default', {
+               theme: 'bubble'
+            });
+  
+            	//유알엘
+            	const url = new URL(window.location.href);
+				
+				const urlParams = url.searchParams;
+				
+				const TargetUserId = urlParams.get("TargetUserId");
+				
+				$.ajax({
+					url: '/admin/orderWindow',
+					type: 'get',
+					success: function(obj) {
+						console.log(obj); 
+						let htmlStr = '';
+						for(let i =0 ;i<obj.pageItems.content.length;i++){
+							htmlStr += `
+								<tr>
+									<td id="targetUserId${i}">${obj.pageItems.content[i].targetUserId}</td>
+									<td id="count${i}">${obj.pageItems.content[i].count}</td>
+								</tr>
+							`
+							/*$("#count").text(obj.pageItems.content[i].count);
+							$("#targetUserId").text(obj.pageItems.content[i].targetUserId);*/
+						}
+						
+						$("#boardTable").append(htmlStr);									   
+					},
+					error: function(e) {
+						console.log(e);
+					}
+			});
+				
+		});
+      </script>
+   </th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+  	<main layout:fragment="main" id="main" class="main">		
+				<table id="boardTable" border="1" style="width: 100%; border-collapse: collapse; margin: 0 auto;">
+					<tr>
+						<th>유저 아이디</th>
+						<th>신고 횟수</th>
+					</tr>
+
+				</table>
+		</main>
+</body>
+</html>

@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout}">
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			$(function () {
+				var page_num = 1;
+				let totalPages = 0;
+				var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+				var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+					return new bootstrap.Tooltip(tooltipTriggerEl)
+				})
+
+
+				$("#btn_next").click(function () {
+					page_num = page_num + 1;
+					console.log("누르기전page_num===" + page_num)
+
+					if (page_num > totalPages) {
+						page_num = totalPages;
+						return;
+					}
+
+					$.ajax({
+						url: '/user/profileAjax',
+						type: 'get',
+						data: {page: page_num - 1},
+						success: function (obj) {
+							console.log(obj)
+							var htmlStr = "";
+							totalPages = obj.pageItems.totalPages;
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+											<div class="card-body">
+												<div class="follow_request mb-5">
+													<span style="float: left;">
+													<img class="img-fluid rounded-circle" 
+													src="/upload/${obj.pageItems.content[i].profileimg.userProfileNm}" style="width: 90px;height:90px;">
+													</span>
+													<span style="word-break: keep-all;">
+														<b>${obj.pageItems.content[i].userName}</b>님이 당신을 팔로우
+														하셨어요!!</span>
+													<div>
+														<form action="/social/followUser" method="post">
+															<input type="hidden" value="${obj.pageItems.content[i].userId}"
+																name="followerId">
+															<input type="submit" class="btn mt-1"
+																style="background-color:#DCEBFF; color: #6e6e6e;"
+																value="팔로우"></input>
+														</form>
+													</div>
+												</div>
+											</div>			
+							`
+							}
+							$("#fallowing_request").html(htmlStr)
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+
+				})
+
+				$("#btn_prev").click(function () {
+					console.log("누르기전page_num===" + page_num);
+					if (page_num < 2) {
+						return;
+					}
+					page_num = page_num - 1;
+					console.log("누른후page_num===" + page_num);
+					$.ajax({
+						url: '/user/profileAjax',
+						type: 'get',
+						data: {page: page_num - 1},
+						success: function (obj) {
+							console.log(obj)
+							var htmlStr = "";
+							totalPages = obj.pageItems.totalPages;
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+											<div class="card-body">
+												<div class="follow_request mb-5">
+													<span style="float: left;">
+													<img class="img-fluid rounded-circle"
+													 src="/upload/${obj.pageItems.content[i].profileimg.userProfileNm}" style="width: 90px;height:90px;">
+													</span>
+													<span style="word-break: keep-all;">
+														<b>${obj.pageItems.content[i].userName}</b>님이 당신을 팔로우
+														하셨어요!!</span>
+													<div>
+														<form action="/social/followUser" method="post">												
+															<input type="hidden" value="${obj.pageItems.content[i].userId}"
+																name="followerId">
+															<input type="submit" class="btn mt-1"
+																style="background-color:#DCEBFF; color: #6e6e6e;"
+																value="팔로우"></input>
+														</form>
+													</div>
+												</div>
+											</div>			
+							`
+							}
+							$("#fallowing_request").html(htmlStr)
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+
+				})
+
+				//모달 처리
+				$("#btnFull").click(function () {
+					$.ajax({
+						url: '/user/profileAjax',
+						type: 'get',
+						data: {page: page_num - 1},
+						success: function (obj) {
+							console.log(obj)
+							var userId = $("#followerId").val()
+							var htmlStr = "";
+							totalPages = obj.pageItems.totalPages;
+							for (let i = 0; i < obj.pageItems.content.length; i++) {
+								htmlStr += `
+											<div class="card-body">
+												<div class="follow_request mb-5">
+													<span style="float: left;">
+													<img class="img-fluid rounded-circle" 
+													src="/upload/${obj.pageItems.content[i].profileimg.userProfileNm}" style="width: 90px;height:90px;">
+													</span>
+													<span style="word-break: keep-all;">
+														<b>${obj.pageItems.content[i].userName}</b>님이 당신을 팔로우
+														하셨어요!!</span>
+													<div>
+														<form action="/social/followUser" method="post">
+															<input type="hidden" value="${obj.pageItems.content[i].userId}"
+																name="followerId">
+															<input type="submit" class="btn mt-1"
+																style="background-color:#DCEBFF; color: #6e6e6e;"
+																value="팔로우"></input>
+														</form>
+													</div>
+												</div>
+											</div>			
+							`
+							}
+							$("#fallowing_request").html(htmlStr)
+							$('#followModal').modal("show");
+
+						},
+						error: function (e) {
+							console.log(e);
+						}
+					});
+
+				})
+
+			});
+		</script>
+	</th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<div class="pagetitle">
+			<!--제목-->
+			<h1>Profile</h1>
+			<nav>
+				<ol class="breadcrumb">
+					<li class="breadcrumb-item"><a th:href="@{/}">Home</a></li>
+					<li class="breadcrumb-item active">Profile</li>
+				</ol>
+			</nav>
+		</div><!-- End Page Title -->
+
+		<section class="section profile">
+			<div class="row">
+				<div class="col-lg-8">
+
+					<div class="card">
+						<div class="card-title profile-card pt-4 d-flex flex-column align-items-center">
+							<img src="/upload/defaultImg.png" alt="Profile" class="rounded-circle profileBox">
+							<h2 th:text="${user.userNick}"></h2>
+							<h6 style="color: #aaaaaa;" th:if="${user.bio != null}" th:text="${user.bio}"></h6>
+							<h6 style="color: #aaaaaa;" th:if="${user.bio == null}">
+								<p>상태메세지를 입력해주세요</p>
+							</h6>
+							<div class="card-body col-10">
+								<!-- 정보, 정보수정, 비밀번호 변경 버튼 -->
+								<ul class="nav nav-tabs nav-tabs-bordered">
+
+									<li class="nav-item">
+										<button class="nav-link active" data-bs-toggle="tab"
+											data-bs-target="#profile-overview">Overview</button>
+									</li>
+
+									<li class="nav-item">
+										<button class="nav-link" data-bs-toggle="tab"
+											data-bs-target="#profile-edit">Edit
+											Profile</button>
+									</li>
+
+								</ul>
+
+								<!--버튼에 관한 각각의 창-->
+								<div class="tab-content pt-2">
+									<!--개인정보 창-->
+									<div class="tab-pane fade show active profile-overview" id="profile-overview">
+										<h5 class="card-title">Profile Details</h5>
+
+										<div class="row">
+											<div class="col-lg-3 col-md-4 label ">Full Name</div>
+											<div class="col-lg-9 col-md-8"
+												th:text="${user.firstName}  +'  ' + ${user.lastName}"></div>
+										</div>
+
+										<div class="row">
+											<div class="col-lg-3 col-md-4 label">Id</div>
+											<div class="col-lg-9 col-md-8" th:text="${user.email}"></div>
+										</div>
+
+										<div class="row">
+											<div class="col-lg-3 col-md-4 label">regDate</div>
+											<div class="col-lg-9 col-md-8"
+												th:text="${#strings.substring(user.regDate, 0, 10)}"></div>
+										</div>
+
+										<div class="row">
+											<div class="col-lg-3 col-md-4 label">Social Id Type</div>
+											<div class="col-lg-9 col-md-8"
+												th:if="${#strings.substring(user.userSnsId, 0, 1)} eq 'k'"
+												th:text="카카오"></div>
+											<div class="col-lg-9 col-md-8"
+												th:if="${#strings.substring(user.userSnsId, 0, 1)} eq 'g'" th:text="구글">
+											</div>
+											<div class="col-lg-9 col-md-8"
+												th:if="${#strings.substring(user.userSnsId, 0, 1)} eq 'n'"
+												th:text="네이버"></div>
+										</div>
+
+										<div class="row">
+											<div class="col-lg-3 col-md-4 label">Address</div>
+											<div class="col-lg-9 col-md-8" th:if="${user.address != null}"
+												th:text="${user.address}"></div>
+											<div class="col-lg-9 col-md-8" style="color: #aaaaaa;"
+												th:if="${user.address == null}"> 주소를 입력해주세요</div>
+										</div>
+
+										<div class="row">
+											<div class="col-lg-3 col-md-4 label">Phone</div>
+											<div class="col-lg-9 col-md-8" th:if="${user.phone != null}"
+												th:text="${user.phone}"></div>
+											<div class="col-lg-9 col-md-8" style="color: #aaaaaa;"
+												th:if="${user.phone == null}"> 전화번호를 입력해주세요</div>
+										</div>
+
+										<div class="row">
+											<div class="col-lg-3 col-md-4 label">Email</div>
+											<div class="col-lg-9 col-md-8" th:text="${user.email}"></div>
+										</div>
+
+									</div>
+									<!--개인정보 수정 창-->
+									<div class="tab-pane fade profile-edit pt-3" id="profile-edit">
+
+										<!-- Profile Edit Form -->
+										<form action="/user/updateUser" method="post" enctype="multipart/form-data">
+
+											<div class="row mb-3">
+												<label for="profileImage"
+													class="col-md-4 col-lg-3 col-form-label">Profile
+													Image</label>
+												<div class="col-md-8 col-lg-9">
+													<div id="profileImgBox">
+														<img style="width:100px; height:100px;" class="profileBox"
+															src="/upload/defaultImg.png" alt="Profile" id="defaultBox">
+													</div>
+													<div class="pt-2">
+														<!--텔레포트-->
+														<a id="updateProfile" class="btn btn-primary btn-sm"
+															title="Upload new profile image"><i
+																class="bi bi-upload"></i></a>
+
+														<input style="display:none" type="file" id="profileBtnAtt"
+															name="profileUpload" multiple="multiple">
+
+														<a id="defaultProfileImg" class="btn btn-danger btn-sm"
+															title="Remove my profile image"><i
+																class="bi bi-trash"></i></a>
+													</div>
+												</div>
+											</div>
+
+											<div class="row mb-3">
+												<label for="nickName"
+													class="col-md-4 col-lg-3 col-form-label">NickName</label>
+												<div class="col-md-8 col-lg-9">
+													<input name="userNick" type="text" class="form-control"
+														id="nickName" th:value="${user.userNick}">
+												</div>
+											</div>
+
+											<div class="row mb-3">
+												<label for="about"
+													class="col-md-4 col-lg-3 col-form-label">condition</label>
+												<div class="col-md-8 col-lg-9">
+													<textarea name="bio" class="form-control" id="about"
+														style="height: 100px" th:text="${user.bio}"></textarea>
+												</div>
+											</div>
+
+
+											<div class="row mb-3">
+												<label for="Address"
+													class="col-md-4 col-lg-3 col-form-label">Address</label>
+												<div class="col-md-8 col-lg-9">
+													<input th:if="${user.address != null}" name="address" type="text"
+														class="form-control" id="Address" th:value="${user.address}">
+													<input th:if="${user.address == null}" name="address" type="text"
+														class="form-control" id="Address" value="주소를 입력해주세요">
+												</div>
+											</div>
+
+											<div class="row mb-3">
+												<label for="Phone"
+													class="col-md-4 col-lg-3 col-form-label">Phone</label>
+												<div class="col-md-8 col-lg-9">
+													<input th:if="${user.phone != null}" name="phone" type="text"
+														class="form-control" id="Phone" th:value="${user.phone}" }>
+													<input th:if="${user.phone == null}" name="phone" type="text"
+														class="form-control" id="Phone" value="전화번호를 입력해주세요">
+												</div>
+											</div>
+
+
+											<div class="text-center">
+												<button type="submit" class="btn btn-primary">Save Changes</button>
+											</div>
+										</form><!-- End Profile Edit Form -->
+									</div>
+
+
+								</div><!-- End Bordered Tabs -->
+
+
+							</div>
+
+
+						</div>
+
+					</div>
+				</div>
+
+				<div class="col-lg-4 col-xxl-3">
+
+					<div class="card" style="text-align: center;" id="followingCard">
+						<h5 class="card-title" style="font-weight: bold;">팔로잉 요청</h5>
+						<a style="color:lightgray; font-size: small;" th:text="'총 '+${followCnt}+'개의 요청'"></a>
+
+						<div class="card-body" th:id="'bodyHtml' + ${requestStat.index}"
+							th:each="request : ${requestList}">
+							<!--팔로잉 요청1-->
+							<div class="follow_request mb-5">
+								<span style="float: left;"><img class="img-fluid rounded-circle"
+										th:src="'/upload/'+${request.profileimg.userProfileNm}" style="width: 90px;"></span>
+								<span style="word-break: keep-all;"><b th:text="${request.userName}"></b>님이 당신을
+									하셨어요!!</span>
+								<div>
+									<form action="/social/followUser" method="post">
+										<input type="hidden" th:value="${request.userId}" name="followerId">
+										<input type="submit" class="btn mt-1"
+											style="background-color:#DCEBFF; color: #6e6e6e;" value="팔로우"></input>
+									</form>
+								</div>
+							</div>
+						</div>
+						<hr>
+						<button id="btnFull"
+							style="margin-top: -17px; background: none; border: none; padding: 10px 0 10px 0;">전체 요청
+							보기</button>
+
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<!--모달 처리-->
+		<div class="modal fade" id="followModal" role="dialog">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content" id="modal-content">
+					<div class="modal-body overflow-auto" style="position: relative;">
+						<div id="fallowing_request">
+
+						</div>
+						<button id="btn_prev"
+							style="position: absolute;  top: 40%; left:4%; transform: translate(-50%, -50%); background:none; border:none;">
+							<img th:src="@{/assets/img/left_btn.png}">
+						</button>
+						<button id="btn_next"
+							style="position: absolute;  top: 40%; right:4%; transform: translate(50%, -50%); background:none; border:none;">
+							<img th:src="@{/assets/img/right_btn.png}">
+						</button>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</main><!-- End #main -->
+</body>
+
+</html>

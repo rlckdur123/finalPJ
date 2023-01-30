@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout_admin}">
+
+<head>
+
+</head>
+<th:block layout:fragment="script">
+	<script th:inline="javascript">
+		$(function () {
+			const url = new URL(window.location.href);
+
+			const urlParams = url.searchParams;
+
+			const commentId = urlParams.get("commentId");
+			const postId = urlParams.get("postId");
+
+			$.ajax({
+				url: '/comment/comment',
+				type: 'get',
+				data: {commentId: commentId, postId: postId},
+				success: function (obj) {
+					console.log(obj);
+					$("#commentId").text(obj.item.commentId);
+					$("#commentDate").text(obj.item.commentDate == null ?
+						'' :
+						obj.item.commentDate.substring(0, 10));
+					$("#commentContent").text(obj.item.commentContent);
+					$("#postId").text(obj.item.postId);
+					$("#userId").text(obj.item.userId);
+
+
+				},
+				error: function (e) {
+					console.log(e);
+				}
+			});
+			$("#btn").click(function () {
+				$.ajax({
+					url: '/comment/deleteComment',
+					type: 'post',
+					data: {
+						postId :  postId,
+						commentId: commentId
+					},
+					success: function (obj) {
+						window.opener.closeCallback();
+
+					},
+					error: function (e) {
+						console.log(e);
+					}
+				});
+
+
+
+			})
+
+		});
+
+	</script>
+</th:block>
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+			<table id="boardTable" border="1" style="width: 700px; border-collapse: collapse;">
+				<tr style="border: 1px solid black;">
+					<th style="background-color: bisque; text-align: center;">댓글 번호</th>
+					<th style="background-color: bisque; text-align: center;">글 번호</th>
+					<th style="background-color: bisque; text-align: center;">댓글 내용</th>
+					<th style="background-color: bisque; text-align: center;">작성 날짜</th>
+					<th style="background-color: bisque; text-align: center;">작성자</th>
+					<th style="background-color: bisque; text-align: center;"></th>
+				</tr>
+				<tr>
+					<td id="commentId" style="text-align: center;"></td>
+					<td id="postId" style="text-align: center;"></td>
+					<td id="commentContent" style="text-align: center;"></td>
+					<td id="commentDate" style="text-align: center;"></td>
+					<td id="userId" style="text-align: center;"></td>
+					<td><input type="button" id="btn" value="삭제"></td>
+				</tr>
+			</table>
+
+	</main>
+</body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</html>

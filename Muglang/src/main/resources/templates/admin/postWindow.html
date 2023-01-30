@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{layouts/layout_admin}">
+
+<!-- head 영역 시작 -->
+<!-- 개별적으로 사용할 css, js 링크 걸기 위해 남겨둠 -->
+
+<head>
+	<th:block layout:fragment="script">
+		<script th:inline="javascript">
+			const loginUserId = 0;
+			
+			//댓글 관련 전역변수
+			let postId = 0;
+			let resName = "";
+			let commentId = 0;
+			let text_comment = "";
+			//화면단에 최초로 뿌릴 때 해당 정보를 임시로 저장하는 변수
+			let thisCommentTotalPages = 0;
+			let thisCommentTotalElements = 0;
+
+			//댓글 페이지수
+			let comment_page_num = 0;
+
+			//무한스크롤
+			let page_num = 0;
+			let post_text = "";
+			let totalPages = 1;
+			let scrollYn = false;
+
+			//현재시간
+			let now = new Date();
+
+			//댓글 수정 texteara 크기 자동 증가
+			function resize(obj) {
+				obj.style.height = "1px";
+				obj.style.height = (12 + obj.scrollHeight) + "px";
+			}
+
+			//새 게시글에서 추가된 파일들을 담아줄 배열. File객체로 하나씩 담음
+			let uploadFiles = [];
+			//이미 게시된 게시글의 파일들을 담을 게시글 구분 새로운 임시 배열
+			////
+			let uploadPostFileList = [];
+			//기존 첨부파일 배열
+			let originFiles = [];
+			//각 게시글들의 첨부파일들을 모은 것을 따로 담을 것임..
+			/////
+			let originFileList = [];
+			//변경된 첨부파일 배열
+			let changedFiles = [];
+
+			//파일 게시글 새로 등록한 곳은 따로 배열을 담아 처리할 것임. 분리함.
+			let inputUploadFiles = [];
+			let inputOriginFiles = [];
+
+			//게시글을 이벤트 처리하기위해 정리 해둔 배열들로
+			//포스팅 글들의 id를 관리하는데 사용함.
+			//해당 배열은 파일 처리 이벤트에서 많이 쓰게될 예정.
+			let postIdList = [];
+			let flagList = [];
+			let postFileIdList = [];
+			//게시글 등록후 해당 인덱스 번호에 대한 파일 이미지 조작할 게시글 위치를 등록할 변수
+			//새로 고침을 하거나 다른 페이지로 가면 이 정보는 0으로 초기화됨.
+			let insertIndex = 0;
+		
+			$(function () {
+				//유알엘
+				const url = new URL(window.location.href);
+
+				const urlParams = url.searchParams;
+
+				const postId1 = urlParams.get("postId");
+
+				$.ajax({
+					url: '/post/getPost',
+					type: 'get',
+					data: {postId: postId1},
+					success: function (obj) {
+						$.get_post(obj);
+					},
+					error: function (e) {
+						console.log("실패실패");
+					}
+				});
+
+			});
+		</script>
+	</th:block>
+
+</head>
+<!-- head 영역 끝 -->
+
+<body>
+	<main layout:fragment="main" id="main" class="main">
+		<section class="section dashboard">
+			<div class="row">
+				<div id="post_div" class="col-12"></div>
+		</section>
+	</main><!-- End #main -->
+</body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</html>
